@@ -36,6 +36,17 @@ UM.PreferencesPage
         }
     }
 
+    function setDefaultCameraPerspective(defaultCameraPerspectiveCode)
+    {
+        for(var i = 0; i < cameraPerspectiveList.count; i++)
+        {
+            if (cameraPerspectiveComboBox.model.get(i).code == defaultCameraPerspectiveCode)
+            {
+                cameraPerspectiveComboBox.currentIndex = i
+            }
+        }
+    }
+
     function setDefaultDiscardOrKeepProfile(code)
     {
         for (var i = 0; i < choiceOnProfileOverrideDropDownButton.model.count; i++)
@@ -69,6 +80,10 @@ UM.PreferencesPage
         UM.Preferences.resetPreference("general/theme")
         var defaultTheme = UM.Preferences.getValue("general/theme")
         setDefaultTheme(defaultTheme)
+
+		UM.Preferences.resetPreference("general/camera_perspective_mode")
+		var defaultCameraPerspective = UM.Preferences.getValue("general/camera_perspective_mode")
+		setDefaultCameraPerspective(defaultCameraPerspective)
 
         UM.Preferences.resetPreference("physics/automatic_push_free")
         pushFreeCheckbox.checked = boolCheck(UM.Preferences.getValue("physics/automatic_push_free"))
@@ -317,6 +332,53 @@ UM.PreferencesPage
                 font.bold: true
                 text: catalog.i18nc("@label","Viewport behavior")
             }
+
+			UM.TooltipArea
+			{
+				width: childrenRect.width
+				height: childrenRect.height
+				text: catalog.i18nc("@info:tooltip", "Perspective projection mode for the camera. This determines how the 3D scene gets projected onto your computer screen.")
+
+				Label
+				{
+					id: cameraPerspectiveLabel
+					text: catalog.i18nc("@label", "Camera Perspective: ")
+				}
+
+				ComboBox
+				{
+					id: cameraPerspectiveComboBox
+					anchors.verticalCenter: cameraPerspectiveLabel.verticalCenter
+					anchors.left: cameraPerspectiveLabel.right
+
+					model: ListModel
+					{
+						id: cameraPerspectiveList
+
+						Component.onCompleted: {
+							append({text: catalog.i18nc("@option camera perspective mode", "Perspective"), code: "perspective"});
+							append({text: catalog.i18nc("@option camera perspective mode", "Orthogonal"), code: "orthogonal"});
+						}
+					}
+
+					currentIndex:
+					{
+						var value = UM.Preferences.getValue("general/camera_perspective_mode");
+						var index = 0;
+						for(var i = 0; i < cameraPerspectiveList.count; ++i)
+						{
+							if(model.get(i).code == value)
+							{
+								index = i;
+								break;
+							}
+						}
+						return index;
+					}
+
+					onActivated: UM.Preferences.setValue("general/camera_perspective_mode", model.get(index).code);
+				}
+			}
 
             UM.TooltipArea
             {
