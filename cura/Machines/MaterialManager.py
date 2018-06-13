@@ -289,9 +289,9 @@ class MaterialManager(QObject):
         material_id_metadata_dict = dict()
         for node in nodes_to_check:
             if node is not None:
-                for material_id, node in node.material_map.items():
+                for material_id, node2 in node.material_map.items():
                     if material_id not in material_id_metadata_dict:
-                        material_id_metadata_dict[material_id] = node
+                        material_id_metadata_dict[material_id] = node2
 
         return material_id_metadata_dict
 
