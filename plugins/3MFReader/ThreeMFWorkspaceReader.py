@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 from UM.Workspace.WorkspaceReader import WorkspaceReader
 from UM.Application import Application
 
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.Message import Message
 from UM.i18n import i18nCatalog
 from UM.Signal import postponeSignals, CompressTechnique
@@ -760,9 +760,9 @@ class ThreeMFWorkspaceReader(WorkspaceReader):
                     extruder_stack = None
                     if position is not None:
                         extruder_stack = global_stack.extruders[position]
-                    container = quality_manager._createQualityChanges(quality_changes_quality_type,
-                                                                      quality_changes_name,
-                                                                      global_stack, extruder_stack)
+                    container = quality_manager.createQualityChangesContainer(quality_changes_quality_type,
+                                                                              quality_changes_name,
+                                                                              global_stack, extruder_stack)
                     container_info.container = container
                     container.setDirty(True)
                     self._container_registry.addContainer(container)
@@ -789,8 +789,8 @@ class ThreeMFWorkspaceReader(WorkspaceReader):
                 quality_changes_info.extruder_info_dict["0"] = container_info
                 extruder_stack = global_stack.extruders["0"]
 
-                container = quality_manager._createQualityChanges(quality_changes_quality_type, quality_changes_name,
-                                                                  global_stack, extruder_stack)
+                container = quality_manager.createQualityChangesContainer(quality_changes_quality_type, quality_changes_name,
+                                                                          global_stack, extruder_stack)
                 container_info.container = container
                 container.setDirty(True)
                 self._container_registry.addContainer(container)
@@ -817,8 +817,8 @@ class ThreeMFWorkspaceReader(WorkspaceReader):
 
                 if container_info.container is None:
                     extruder_stack = global_stack.extruders[position]
-                    container = quality_manager._createQualityChanges(quality_changes_quality_type, quality_changes_name,
-                                                                      global_stack, extruder_stack)
+                    container = quality_manager.createQualityChangesContainer(quality_changes_quality_type, quality_changes_name,
+                                                                              global_stack, extruder_stack)
                     container_info.container = container
 
                 for key, value in container_info.parser["values"].items():

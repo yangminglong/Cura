@@ -15,7 +15,10 @@ from .ContainerNode import ContainerNode
 class MaterialNode(ContainerNode):
     __slots__ = ("material_map", "children_map")
 
-    def __init__(self, metadata: Optional[dict] = None):
+    def __init__(self, metadata: Optional[dict] = None) -> None:
         super().__init__(metadata = metadata)
         self.material_map = {}  # material_root_id -> material_node
         self.children_map = {}  # mapping for the child nodes
+
+
+__all__ = ["MaterialNode"]

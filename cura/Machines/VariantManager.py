@@ -5,16 +5,17 @@ from enum import Enum
 from collections import OrderedDict
 from typing import Optional, TYPE_CHECKING
 
-from UM.ConfigurationErrorMessage import ConfigurationErrorMessage
-from UM.Logger import Logger
-from UM.Settings.ContainerRegistry import ContainerRegistry
+from UM.Logging.Logger import Logger
 from UM.Util import parseBool
 
 from cura.Machines.ContainerNode import ContainerNode
-from cura.Settings.GlobalStack import GlobalStack
 
 if TYPE_CHECKING:
+    from UM.Application import Application
+    from UM.Settings.ContainerRegistry import ContainerRegistry
     from UM.Settings.DefinitionContainer import DefinitionContainer
+
+    from cura.Settings.GlobalStack import GlobalStack
 
 
 class VariantType(Enum):
@@ -44,8 +45,9 @@ ALL_VARIANT_TYPES = (VariantType.BUILD_PLATE, VariantType.NOZZLE)
 #
 class VariantManager:
 
-    def __init__(self, container_registry):
-        self._container_registry = container_registry  # type: ContainerRegistry
+    def __init__(self, application: "Application"):
+        self._application = application  # type: Application
+        self._container_registry = self._application.getContainerRegistry()  # type: ContainerRegistry
 
         self._machine_to_variant_dict_map = dict()  # <machine_type> -> <variant_dict>
         self._machine_to_buildplate_dict_map = dict()
@@ -83,8 +85,7 @@ class VariantManager:
             variant_dict = self._machine_to_variant_dict_map[variant_definition][variant_type]
             if variant_name in variant_dict:
                 # ERROR: duplicated variant name.
-                ConfigurationErrorMessage.getInstance().addFaultyContainers(variant_metadata["id"])
-                continue #Then ignore this variant. This now chooses one of the two variants arbitrarily and deletes the other one! No guarantees!
+                raise RuntimeError("Found duplicate variant name %s" % variant_name)
 
             variant_dict[variant_name] = ContainerNode(metadata = variant_metadata)
 
@@ -144,3 +145,6 @@ class VariantManager:
         if machine_definition_id in self._machine_to_buildplate_dict_map:
             return self._machine_to_buildplate_dict_map[machine_definition_id].get(buildplate_type)
         return None
+
+
+__all__ = ["VariantType", "VariantManager"]

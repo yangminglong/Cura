@@ -6,7 +6,7 @@ import json
 import copy
 
 from UM.Mesh.MeshWriter import MeshWriter
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.Application import Application
 from UM.Settings.InstanceContainer import InstanceContainer
 
@@ -122,7 +122,7 @@ class GCodeWriter(MeshWriter):
         if container_with_profile.getId() == "empty_quality_changes":
             # If the global quality changes is empty, create a new one
             quality_name = container_registry.uniqueName(stack.quality.getName())
-            container_with_profile = quality_manager._createQualityChanges(quality_type, quality_name, stack, None)
+            container_with_profile = quality_manager.createQualityChangesContainer(quality_type, quality_name, stack, None)
 
         flat_global_container = self._createFlattenedContainerInstance(stack.userChanges, container_with_profile)
         # If the quality changes is not set, we need to set type manually
@@ -146,7 +146,7 @@ class GCodeWriter(MeshWriter):
             if extruder_quality.getId() == "empty_quality_changes":
                 # Same story, if quality changes is empty, create a new one
                 quality_name = container_registry.uniqueName(stack.quality.getName())
-                extruder_quality = quality_manager._createQualityChanges(quality_type, quality_name, stack, None)
+                extruder_quality = quality_manager.createQualityChangesContainer(quality_type, quality_name, stack, None)
 
             flat_extruder_quality = self._createFlattenedContainerInstance(extruder.userChanges, extruder_quality)
             # If the quality changes is not set, we need to set type manually

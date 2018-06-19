@@ -3,8 +3,6 @@
 
 from typing import Dict, Optional, List
 
-from PyQt5.QtCore import QObject, pyqtSlot
-
 
 #
 # A QualityGroup represents a group of containers that must be applied to each ContainerStack when it's used.
@@ -19,17 +17,16 @@ from PyQt5.QtCore import QObject, pyqtSlot
 # a machine, so when a quality/custom quality is selected, the container can be directly applied to each stack instead
 # of looking them up again.
 #
-class QualityGroup(QObject):
+class QualityGroup:
 
-    def __init__(self, name: str, quality_type: str, parent = None):
-        super().__init__(parent)
+    def __init__(self, name: str, quality_type: str):
+        super().__init__()
         self.name = name
         self.node_for_global = None  # type: Optional["QualityGroup"]
         self.nodes_for_extruders = {}  # type: Dict[int, "QualityGroup"]
         self.quality_type = quality_type
         self.is_available = False
 
-    @pyqtSlot(result = str)
     def getName(self) -> str:
         return self.name
 
@@ -48,3 +45,6 @@ class QualityGroup(QObject):
         for extruder_node in self.nodes_for_extruders.values():
             result.append(extruder_node)
         return result
+
+
+__all__ = ["QualityGroup"]

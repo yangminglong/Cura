@@ -33,3 +33,6 @@ class QualityNode(ContainerNode):
             quality_type_node.children_map[name] = QualityChangesGroup(name, quality_type)
         quality_changes_group = quality_type_node.children_map[name]
         quality_changes_group.addNode(QualityNode(metadata))
+
+
+__all__ = ["QualityNode"]

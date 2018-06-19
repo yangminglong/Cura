@@ -1,13 +1,13 @@
 # Copyright (c) 2018 Ultimaker B.V.
 # Cura is released under the terms of the LGPLv3 or higher.
 
-from typing import Optional
-
 from collections import OrderedDict
+from typing import Optional, TYPE_CHECKING
 
-from UM.ConfigurationErrorMessage import ConfigurationErrorMessage
-from UM.Logger import Logger
-from UM.Settings.InstanceContainer import InstanceContainer
+from UM.Logging.Logger import Logger
+
+if TYPE_CHECKING:
+    from UM.Settings.InstanceContainer import InstanceContainer
 
 
 ##
@@ -41,13 +41,15 @@ class ContainerNode:
             from UM.Settings.ContainerRegistry import ContainerRegistry
             container_list = ContainerRegistry.getInstance().findInstanceContainers(id = container_id)
             if not container_list:
+                msg = "Failed to lazy-load container [{container_id}]. Cannot find it.".format(container_id = container_id)
                 Logger.log("e", "Failed to lazy-load container [{container_id}]. Cannot find it.".format(container_id = container_id))
-                error_message = ConfigurationErrorMessage.getInstance()
-                error_message.addFaultyContainers(container_id)
-                return None
+                raise RuntimeError(msg)
             self.container = container_list[0]
 
         return self.container
 
     def __str__(self) -> str:
         return "%s[%s]" % (self.__class__.__name__, self.metadata.get("id"))
+
+
+__all__ = ["ContainerNode"]

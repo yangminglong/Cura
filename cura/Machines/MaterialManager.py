@@ -4,13 +4,9 @@
 from collections import defaultdict, OrderedDict
 import copy
 import uuid
-from typing import Optional, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 
-from PyQt5.Qt import QTimer, QObject, pyqtSignal, pyqtSlot
-
-from UM.Application import Application
-from UM.ConfigurationErrorMessage import ConfigurationErrorMessage
-from UM.Logger import Logger
+from UM.Logging.Logger import Logger
 from UM.Settings.ContainerRegistry import ContainerRegistry
 from UM.Settings.SettingFunction import SettingFunction
 from UM.Util import parseBool
@@ -35,14 +31,11 @@ if TYPE_CHECKING:
 # but so far the creation of the tables and maps is very fast and there is no noticeable slowness, we keep it like this
 # because it's simple.
 #
-class MaterialManager(QObject):
+class MaterialManager:
 
-    materialsUpdated = pyqtSignal()  # Emitted whenever the material lookup tables are updated.
-
-    def __init__(self, container_registry, parent = None):
-        super().__init__(parent)
-        self._application = Application.getInstance()
-        self._container_registry = container_registry  # type: ContainerRegistry
+    def __init__(self, application):
+        self._application = application
+        self._container_registry = self._application.getContainerRegistry()  # type: ContainerRegistry
 
         self._fallback_materials_map = dict()  # material_type -> generic material metadata
         self._material_group_map = dict()  # root_material_id -> MaterialGroup
@@ -61,18 +54,6 @@ class MaterialManager(QObject):
         # This is used as the last fallback option if the given machine-specific material(s) cannot be found.
         self._default_machine_definition_id = "fdmprinter"
         self._default_approximate_diameter_for_quality_search = "3"
-
-        # When a material gets added/imported, there can be more than one InstanceContainers. In those cases, we don't
-        # want to react on every container/metadata changed signal. The timer here is to buffer it a bit so we don't
-        # react too many time.
-        self._update_timer = QTimer(self)
-        self._update_timer.setInterval(300)
-        self._update_timer.setSingleShot(True)
-        self._update_timer.timeout.connect(self._updateMaps)
-
-        self._container_registry.containerMetaDataChanged.connect(self._onContainerMetadataChanged)
-        self._container_registry.containerAdded.connect(self._onContainerMetadataChanged)
-        self._container_registry.containerRemoved.connect(self._onContainerMetadataChanged)
 
     def initialize(self):
         # Find all materials and put them in a matrix for quick search.
@@ -222,15 +203,15 @@ class MaterialManager(QObject):
 
                     variant_node = machine_node.children_map[variant_name]
                     if root_material_id in variant_node.material_map:  # We shouldn't have duplicated variant-specific materials for the same machine.
-                        ConfigurationErrorMessage.getInstance().addFaultyContainers(root_material_id)
-                        continue
+                        # TODO
+                        raise RuntimeError()
                     variant_node.material_map[root_material_id] = MaterialNode(material_metadata)
                 else:
                     # Add this container id to the wrong containers list in the registry
+                    msg = "Not adding {id} to the material manager because the variant does not exist.".format(id = material_metadata["id"])
                     Logger.log("w", "Not adding {id} to the material manager because the variant does not exist.".format(id = material_metadata["id"]))
-                    self._container_registry.addWrongContainerId(material_metadata["id"])
-
-        self.materialsUpdated.emit()
+                    #raise RuntimeError(msg)
+                    continue
 
     def _updateMaps(self):
         Logger.log("i", "Updating material lookup data ...")
@@ -244,9 +225,6 @@ class MaterialManager(QObject):
         if container_type != "material":
             return
 
-        # update the maps
-        self._update_timer.start()
-
     def getMaterialGroup(self, root_material_id: str) -> Optional[MaterialGroup]:
         return self._material_group_map.get(root_material_id)
 
@@ -258,6 +236,47 @@ class MaterialManager(QObject):
 
     def getMaterialGroupListByGUID(self, guid: str) -> Optional[list]:
         return self._guid_material_groups_map.get(guid)
+
+    def getAvailableMaterialIdsForMachine(self, global_stack: "GlobalStack") -> List[str]:
+        diameter = global_stack.extruders["0"].approximateMaterialDiameter
+
+        # round the diameter to get the approximate diameter
+        rounded_diameter = str(round(diameter))
+        if rounded_diameter not in self._diameter_machine_variant_material_map:
+            Logger.log("i", "Cannot find materials with diameter [%s] (rounded to [%s])", diameter, rounded_diameter)
+            return []
+
+        machine_definition = global_stack.definition
+        machine_definition_id = machine_definition.getId()
+
+        # If there are variant materials, get the variant material
+        machine_variant_material_map = self._diameter_machine_variant_material_map[rounded_diameter]
+        machine_node = machine_variant_material_map.get(machine_definition_id)
+        default_machine_node = machine_variant_material_map.get(self._default_machine_definition_id)
+        variant_node_list = list(machine_node.children_map.values())
+
+        nodes_to_check = variant_node_list + [machine_node, default_machine_node]
+
+        # Fallback mechanism of finding materials:
+        #  1. variant-specific material
+        #  2. machine-specific material
+        #  3. generic material (for fdmprinter)
+        machine_exclude_materials = machine_definition.getMetaDataEntry("exclude_materials", [])
+
+        material_id_set = set()
+        for node in nodes_to_check:
+            if node is not None:
+                # Only exclude the materials that are explicitly specified in the "exclude_materials" field.
+                # Do not exclude other materials that are of the same type.
+                for material_id, node in node.material_map.items():
+                    if material_id in machine_exclude_materials:
+                        Logger.log("d", "Exclude material [%s] for machine [%s]",
+                                   material_id, machine_definition.getId())
+                        continue
+
+                    material_id_set.add(material_id)
+
+        return list(material_id_set)
 
     #
     # Return a dict with all root material IDs (k) and ContainerNodes (v) that's suitable for the given setup.
@@ -443,7 +462,6 @@ class MaterialManager(QObject):
     #
     # Sets the new name for the given material.
     #
-    @pyqtSlot("QVariant", str)
     def setMaterialName(self, material_node: "MaterialNode", name: str):
         root_material_id = material_node.metadata["base_file"]
         if self._container_registry.isReadOnly(root_material_id):
@@ -457,7 +475,6 @@ class MaterialManager(QObject):
     #
     # Removes the given material.
     #
-    @pyqtSlot("QVariant")
     def removeMaterial(self, material_node: "MaterialNode"):
         root_material_id = material_node.metadata["base_file"]
         self.removeMaterialByRootId(root_material_id)
@@ -466,7 +483,6 @@ class MaterialManager(QObject):
     # Creates a duplicate of a material, which has the same GUID and base_file metadata.
     # Returns the root material ID of the duplicated material if successful.
     #
-    @pyqtSlot("QVariant", result = str)
     def duplicateMaterial(self, material_node, new_base_id = None, new_metadata = None) -> Optional[str]:
         root_material_id = material_node.metadata["base_file"]
 
@@ -524,7 +540,6 @@ class MaterialManager(QObject):
     #
     # Create a new material by cloning Generic PLA for the current material diameter and generate a new GUID.
     #
-    @pyqtSlot(result = str)
     def createMaterial(self) -> str:
         from UM.i18n import i18nCatalog
         catalog = i18nCatalog("cura")
