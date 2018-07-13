@@ -287,6 +287,9 @@ class StartSliceJob(Job):
         super().cancel()
         self._is_cancelled = True
 
+    def setIsCancelled(self, value : bool):
+        self._is_cancelled = value
+
     def isCancelled(self) -> bool:
         return self._is_cancelled
 

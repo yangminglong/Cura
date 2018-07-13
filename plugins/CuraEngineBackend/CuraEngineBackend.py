@@ -172,6 +172,7 @@ class CuraEngineBackend(QObject, Backend):
     #   Called when closing the application.
     def close(self) -> None:
         # Terminate CuraEngine if it is still running at this point
+        print("_terminate #1")
         self._terminate()
 
     ##  Get the command that is used to call the engine.
@@ -197,6 +198,7 @@ class CuraEngineBackend(QObject, Backend):
     def stopSlicing(self) -> None:
         self.backendStateChange.emit(BackendState.NotStarted)
         if self._slicing:  # We were already slicing. Stop the old job.
+            print("_terminate #2")
             self._terminate()
             self._createSocket()
 
@@ -273,11 +275,13 @@ class CuraEngineBackend(QObject, Backend):
     ##  Terminate the engine process.
     #   Start the engine process by calling _createSocket()
     def _terminate(self) -> None:
+        print("_terminate #3")
         self._slicing = False
         self._stored_layer_data = []
         if self._start_slice_job_build_plate in self._stored_optimized_layer_data:
             del self._stored_optimized_layer_data[self._start_slice_job_build_plate]
         if self._start_slice_job is not None:
+            print("JOB IS CANCLED : self._start_slice_job.cancel()")
             self._start_slice_job.cancel()
 
         self.slicingCancelled.emit()
@@ -290,6 +294,7 @@ class CuraEngineBackend(QObject, Backend):
         if self._process is not None: # type: ignore
             Logger.log("d", "Killing engine process")
             try:
+                print("_terminate #4")
                 self._process.terminate() # type: ignore
                 Logger.log("d", "Engine process is killed. Received return code %s", self._process.wait()) # type: ignore
                 self._process = None # type: ignore
@@ -306,6 +311,9 @@ class CuraEngineBackend(QObject, Backend):
     #
     #   \param job The start slice job that was just finished.
     def _onStartSliceCompleted(self, job: StartSliceJob) -> None:
+
+        print("_onStartSliceCompleted #1")
+
         if self._error_message:
             self._error_message.hide()
 
@@ -521,15 +529,26 @@ class CuraEngineBackend(QObject, Backend):
     #
     #   \param error The exception that occurred.
     def _onSocketError(self, error: Arcus.Error) -> None:
+        print("_terminate #5")
         if self._application.isShuttingDown():
+            print("_terminate #5_1")
             return
-
+        print("CALL PARENT BACKEND TO CREATE SOCKET")
         super()._onSocketError(error)
         if error.getErrorCode() == Arcus.ErrorCode.Debug:
+            print("_terminate #5_2")
             return
 
+        print("_terminate #5_3")
         self._terminate()
         self._createSocket()
+
+
+        print("+++ARCUS ERROR:  " + str(error))
+        if error.getErrorCode() == Arcus.ErrorCode.BindFailedError and self._start_slice_job is not None:
+            print("self._start_slice_job.setIsCancelled(False)")
+
+            self._start_slice_job.setIsCancelled(False)
 
         if error.getErrorCode() not in [Arcus.ErrorCode.BindFailedError, Arcus.ErrorCode.ConnectionResetError, Arcus.ErrorCode.Debug]:
             Logger.log("w", "A socket error caused the connection to be reset")
@@ -669,12 +688,14 @@ class CuraEngineBackend(QObject, Backend):
 
     ##  Creates a new socket connection.
     def _createSocket(self, protocol_file: str = None) -> None:
+        print("CURAENGINEBACKEND_createSocket #1")
         if not protocol_file:
             plugin_path = PluginRegistry.getInstance().getPluginPath(self.getPluginId())
             if not plugin_path:
                 Logger.log("e", "Could not get plugin path!", self.getPluginId())
                 return
             protocol_file = os.path.abspath(os.path.join(plugin_path, "Cura.proto"))
+        print("CALL PARENT _createSocket")
         super()._createSocket(protocol_file)
         self._engine_is_fresh = True
 
@@ -743,6 +764,7 @@ class CuraEngineBackend(QObject, Backend):
         self.disableTimer()
         # Restart engine as soon as possible, we know we want to slice afterwards
         if not self._engine_is_fresh:
+            print("_terminate #6")
             self._terminate()
             self._createSocket()
 
