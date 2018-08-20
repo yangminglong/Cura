@@ -6,6 +6,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/
 
 include(GNUInstallDirs)
 
+find_package(PythonInterp 3.6.0 REQUIRED)
+
 set(URANIUM_DIR "${CMAKE_SOURCE_DIR}/../Uranium" CACHE DIRECTORY "The location of the Uranium repository")
 set(URANIUM_SCRIPTS_DIR "${URANIUM_DIR}/scripts" CACHE DIRECTORY "The location of the scripts directory of the Uranium repository")
 
@@ -38,8 +40,6 @@ if(NOT ${URANIUM_SCRIPTS_DIR} STREQUAL "")
     # Build Translations
     CREATE_TRANSLATION_TARGETS()
 endif()
-
-find_package(PythonInterp 3.5.0 REQUIRED)
 
 install(DIRECTORY resources
         DESTINATION ${CMAKE_INSTALL_DATADIR}/cura)
