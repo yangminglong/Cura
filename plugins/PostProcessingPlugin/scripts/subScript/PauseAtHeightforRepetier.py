@@ -1,87 +1,19 @@
-from ..Script import Script
-class PauseAtHeightforRepetier(Script):
-    def __init__(self):
-        super().__init__()
 
-    def getSettingDataString(self):
-        return """{
-            "name":"Pause at height for repetier",
-            "key": "PauseAtHeightforRepetier",
-            "metadata": {},
-            "version": 2,
-            "settings":
-            {
-                "pause_height":
-                {
-                    "label": "Pause height",
-                    "description": "At what height should the pause occur",
-                    "unit": "mm",
-                    "type": "float",
-                    "default_value": 5.0
-                },
-                "head_park_x":
-                {
-                    "label": "Park print head X",
-                    "description": "What x location does the head move to when pausing.",
-                    "unit": "mm",
-                    "type": "float",
-                    "default_value": 5.0
-                },
-                "head_park_y":
-                {
-                    "label": "Park print head Y",
-                    "description": "What y location does the head move to when pausing.",
-                    "unit": "mm",
-                    "type": "float",
-                    "default_value": 5.0
-                },
-                "head_move_Z":
-                {
-                    "label": "Head move Z",
-                    "description": "The Hieght of Z-axis retraction before parking.",
-                    "unit": "mm",
-                    "type": "float",
-                    "default_value": 15.0
-                },
-                "retraction_amount":
-                {
-                    "label": "Retraction",
-                    "description": "How much fillament must be retracted at pause.",
-                    "unit": "mm",
-                    "type": "float",
-                    "default_value": 5.0
-                },
-                "extrude_amount":
-                {
-                    "label": "Extrude amount",
-                    "description": "How much filament should be extruded after pause. This is needed when doing a material change on Ultimaker2's to compensate for the retraction after the change. In that case 128+ is recommended.",
-                    "unit": "mm",
-                    "type": "float",
-                    "default_value": 90.0
-                },
-                "redo_layers":
-                {
-                    "label": "Redo layers",
-                    "description": "Redo a number of previous layers after a pause to increases adhesion.",
-                    "unit": "layers",
-                    "type": "int",
-                    "default_value": 0
-                }
-            }
-        }"""
+class PauseAtHeightforRepetier():
 
-    def execute(self, data):
+    @staticmethod
+    def execute(data, parent_script):
         x = 0.
         y = 0.
         current_z = 0.
-        pause_z = self.getSettingValueByKey("pause_height")
-        retraction_amount = self.getSettingValueByKey("retraction_amount")
-        extrude_amount = self.getSettingValueByKey("extrude_amount")
-        park_x = self.getSettingValueByKey("head_park_x")
-        park_y = self.getSettingValueByKey("head_park_y")
-        move_Z = self.getSettingValueByKey("head_move_Z")
+        pause_z = parent_script.getSettingValueByKey("pause_height")
+        retraction_amount = parent_script.getSettingValueByKey("retraction_amount")
+        extrude_amount = parent_script.getSettingValueByKey("extrude_amount")
+        park_x = parent_script.getSettingValueByKey("head_park_x")
+        park_y = parent_script.getSettingValueByKey("head_park_y")
+        move_Z = parent_script.getSettingValueByKey("head_move_Z")
         layers_started = False
-        redo_layers = self.getSettingValueByKey("redo_layers")
+        redo_layers = parent_script.getSettingValueByKey("redo_layers")
         for layer in data:
             lines = layer.split("\n")
             for line in lines:
@@ -92,10 +24,10 @@ class PauseAtHeightforRepetier(Script):
                 if not layers_started:
                     continue
 
-                if self.getValue(line, 'G') == 1 or self.getValue(line, 'G') == 0:
-                    current_z = self.getValue(line, 'Z')
-                    x = self.getValue(line, 'X', x)
-                    y = self.getValue(line, 'Y', y)
+                if parent_script.getValue(line, 'G') == 1 or parent_script.getValue(line, 'G') == 0:
+                    current_z = parent_script.getValue(line, 'Z')
+                    x = parent_script.getValue(line, 'X', x)
+                    y = parent_script.getValue(line, 'Y', y)
                     if current_z != None:
                         if current_z >= pause_z:
 
@@ -104,7 +36,7 @@ class PauseAtHeightforRepetier(Script):
                             prevLines = prevLayer.split("\n")
                             current_e = 0.
                             for prevLine in reversed(prevLines):
-                                current_e = self.getValue(prevLine, 'E', -1)
+                                current_e = parent_script.getValue(prevLine, 'E', -1)
                                 if current_e >= 0:
                                     break
 

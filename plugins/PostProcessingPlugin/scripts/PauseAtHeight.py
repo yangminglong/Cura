@@ -3,11 +3,13 @@
 
 from ..Script import Script
 
+
 from UM.Application import Application #To get the current printer's settings.
 
 class PauseAtHeight(Script):
     def __init__(self):
         super().__init__()
+
 
     def getSettingDataString(self):
         return """{
@@ -17,13 +19,28 @@ class PauseAtHeight(Script):
             "version": 2,
             "settings":
             {
+                "pause_script_type":
+                {
+                    "label": "Firmware Type",
+                    "description": "The type of Firmware/3DPrinter: BQ Printers - is for 'BQ Printers'; Repetier - is for 'Repetier'; RepRapFirmware - is for RepRapFirmware DuetWifi / Duet Ethernet / Duet Maestro",
+                    "type": "enum",
+                    "options": 
+                    {
+                        "default_type": "Default", 
+                        "bq_pauseAtHeight": "(BQ Printers)",
+                        "PauseAtHeightforRepetier" : "Repetier",
+                        "PauseAtHeightRepRapFirmwareDuet" : "RepRapFirmware"
+                    },
+                    "default_value": "default_type"
+                },
                 "pause_at":
                 {
                     "label": "Pause at",
                     "description": "Whether to pause at a certain height or at a certain layer.",
                     "type": "enum",
                     "options": {"height": "Height", "layer_no": "Layer No."},
-                    "default_value": "height"
+                    "default_value": "height",
+                    "enabled": "pause_script_type == 'default_type'"
                 },
                 "pause_height":
                 {
@@ -34,7 +51,7 @@ class PauseAtHeight(Script):
                     "default_value": 5.0,
                     "minimum_value": "0",
                     "minimum_value_warning": "0.27",
-                    "enabled": "pause_at == 'height'"
+                    "enabled": "pause_at == 'height' and pause_script_type == 'default_type' or pause_script_type == 'bq_pauseAtHeight' or pause_script_type == 'PauseAtHeightforRepetier' or pause_script_type == 'PauseAtHeightRepRapFirmwareDuet'"
                 },
                 "pause_layer":
                 {
@@ -44,7 +61,7 @@ class PauseAtHeight(Script):
                     "value": "math.floor((pause_height - 0.27) / 0.1) + 1",
                     "minimum_value": "0",
                     "minimum_value_warning": "1",
-                    "enabled": "pause_at == 'layer_no'"
+                    "enabled": "pause_at == 'layer_no' and pause_script_type == 'default_type'"
                 },
                 "head_park_x":
                 {
@@ -52,7 +69,8 @@ class PauseAtHeight(Script):
                     "description": "What X location does the head move to when pausing.",
                     "unit": "mm",
                     "type": "float",
-                    "default_value": 190
+                    "value": "190 if pause_script_type == 'default_type' else 5.0",
+                    "enabled": "pause_script_type == 'default_type' or pause_script_type == 'PauseAtHeightforRepetier'"
                 },
                 "head_park_y":
                 {
@@ -60,7 +78,17 @@ class PauseAtHeight(Script):
                     "description": "What Y location does the head move to when pausing.",
                     "unit": "mm",
                     "type": "float",
-                    "default_value": 190
+                    "value": "190 if pause_script_type == 'default_type' else 5.0",
+                    "enabled": "pause_script_type == 'default_type' or pause_script_type == 'PauseAtHeightforRepetier'"
+                },
+                "head_move_Z":
+                {
+                    "label": "Head move Z",
+                    "description": "The Hieght of Z-axis retraction before parking.",
+                    "unit": "mm",
+                    "type": "float",
+                    "default_value": 15.0,
+                    "enabled": "pause_script_type == 'PauseAtHeightforRepetier'"
                 },
                 "retraction_amount":
                 {
@@ -68,7 +96,8 @@ class PauseAtHeight(Script):
                     "description": "How much filament must be retracted at pause.",
                     "unit": "mm",
                     "type": "float",
-                    "default_value": 0
+                    "value": "0 if pause_script_type == 'default_type' else 5.0",
+                    "enabled": "pause_script_type == 'default_type' or pause_script_type == 'PauseAtHeightforRepetier'"
                 },
                 "retraction_speed":
                 {
@@ -76,7 +105,8 @@ class PauseAtHeight(Script):
                     "description": "How fast to retract the filament.",
                     "unit": "mm/s",
                     "type": "float",
-                    "default_value": 25
+                    "default_value": 25,
+                    "enabled": "pause_script_type == 'default_type'"
                 },
                 "extrude_amount":
                 {
@@ -84,7 +114,8 @@ class PauseAtHeight(Script):
                     "description": "How much filament should be extruded after pause. This is needed when doing a material change on Ultimaker2's to compensate for the retraction after the change. In that case 128+ is recommended.",
                     "unit": "mm",
                     "type": "float",
-                    "default_value": 0
+                    "value": "0 if pause_script_type == 'default_type' else 90.0",
+                    "enabled": "pause_script_type == 'default_type' or pause_script_type == 'PauseAtHeightforRepetier'"
                 },
                 "extrude_speed":
                 {
@@ -92,7 +123,8 @@ class PauseAtHeight(Script):
                     "description": "How fast to extrude the material after pause.",
                     "unit": "mm/s",
                     "type": "float",
-                    "default_value": 3.3333
+                    "default_value": 3.3333,
+                    "enabled": "pause_script_type == 'default_type'"
                 },
                 "redo_layers":
                 {
@@ -100,7 +132,8 @@ class PauseAtHeight(Script):
                     "description": "Redo a number of previous layers after a pause to increases adhesion.",
                     "unit": "layers",
                     "type": "int",
-                    "default_value": 0
+                    "default_value": 0,
+                    "enabled": "pause_script_type == 'default_type' or pause_script_type == 'PauseAtHeightforRepetier'"
                 },
                 "standby_temperature":
                 {
@@ -108,7 +141,8 @@ class PauseAtHeight(Script):
                     "description": "Change the temperature during the pause",
                     "unit": "°C",
                     "type": "int",
-                    "default_value": 0
+                    "default_value": 0,
+                    "enabled": "pause_script_type == 'default_type'"
                 }
             }
         }"""
@@ -127,6 +161,29 @@ class PauseAtHeight(Script):
         return 0, 0
 
     def execute(self, data: list):
+
+        pause_script_type = self.getSettingValueByKey("pause_script_type")
+
+        result = []
+        if pause_script_type == "default_type":
+            result = self.executeDefaultScript(data)
+        elif pause_script_type == "bq_pauseAtHeight":
+            from plugins.PostProcessingPlugin.scripts.subScript.BQ_PauseAtHeight import BQ_PauseAtHeight
+            result = BQ_PauseAtHeight.execute(data, self)
+        elif pause_script_type == "PauseAtHeightforRepetier":
+            from plugins.PostProcessingPlugin.scripts.subScript.PauseAtHeightforRepetier import PauseAtHeightforRepetier
+            result = PauseAtHeightforRepetier.execute(data, self)
+        elif pause_script_type == "PauseAtHeightRepRapFirmwareDuet":
+            from plugins.PostProcessingPlugin.scripts.subScript.PauseAtHeightRepRapFirmwareDuet import PauseAtHeightRepRapFirmwareDuet
+            result = PauseAtHeightRepRapFirmwareDuet.execute(data, self)
+
+        if len(result) == 0:
+            raise Exception("Post processing plugin error. Occurred error while executing PauseAtHeight Script")
+
+        return result
+
+
+    def executeDefaultScript(self, data: list):
         """data is a list. Each index contains a layer"""
         pause_at = self.getSettingValueByKey("pause_at")
         pause_height = self.getSettingValueByKey("pause_height")
@@ -140,9 +197,12 @@ class PauseAtHeight(Script):
         layers_started = False
         redo_layers = self.getSettingValueByKey("redo_layers")
         standby_temperature = self.getSettingValueByKey("standby_temperature")
-        firmware_retract = Application.getInstance().getGlobalContainerStack().getProperty("machine_firmware_retract", "value")
-        control_temperatures = Application.getInstance().getGlobalContainerStack().getProperty("machine_nozzle_temp_enabled", "value")
-        initial_layer_height = Application.getInstance().getGlobalContainerStack().getProperty("layer_height_0", "value")
+        firmware_retract = Application.getInstance().getGlobalContainerStack().getProperty("machine_firmware_retract",
+                                                                                           "value")
+        control_temperatures = Application.getInstance().getGlobalContainerStack().getProperty(
+            "machine_nozzle_temp_enabled", "value")
+        initial_layer_height = Application.getInstance().getGlobalContainerStack().getProperty("layer_height_0",
+                                                                                               "value")
 
         is_griffin = False
 
@@ -152,8 +212,8 @@ class PauseAtHeight(Script):
         layer_0_z = 0
         current_z = 0
         got_first_g_cmd_on_layer_0 = False
-        current_t = 0 #Tracks the current extruder for tracking the target temperature.
-        target_temperature = {} #Tracks the current target temperature for each extruder.
+        current_t = 0  # Tracks the current extruder for tracking the target temperature.
+        target_temperature = {}  # Tracks the current target temperature for each extruder.
 
         nbr_negative_layers = 0
 
@@ -171,7 +231,7 @@ class PauseAtHeight(Script):
                 elif ";LAYER:-" in line:
                     nbr_negative_layers += 1
 
-                #Track the latest printing temperature in order to resume at the correct temperature.
+                # Track the latest printing temperature in order to resume at the correct temperature.
                 if line.startswith("T"):
                     current_t = self.getValue(line, "T")
                 m = self.getValue(line, "M")
@@ -257,71 +317,72 @@ class PauseAtHeight(Script):
                 prepend_gcode += ";added code by post processing\n"
                 prepend_gcode += ";script: PauseAtHeight.py\n"
                 if pause_at == "height":
-                    prepend_gcode += ";current z: {z}\n".format(z = current_z)
-                    prepend_gcode += ";current height: {height}\n".format(height = current_height)
+                    prepend_gcode += ";current z: {z}\n".format(z=current_z)
+                    prepend_gcode += ";current height: {height}\n".format(height=current_height)
                 else:
-                    prepend_gcode += ";current layer: {layer}\n".format(layer = current_layer)
+                    prepend_gcode += ";current layer: {layer}\n".format(layer=current_layer)
 
                 if not is_griffin:
                     # Retraction
-                    prepend_gcode += self.putValue(M = 83) + "\n"
+                    prepend_gcode += self.putValue(M=83) + "\n"
                     if retraction_amount != 0:
-                        if firmware_retract: #Can't set the distance directly to what the user wants. We have to choose ourselves.
-                            retraction_count = 1 if control_temperatures else 3 #Retract more if we don't control the temperature.
+                        if firmware_retract:  # Can't set the distance directly to what the user wants. We have to choose ourselves.
+                            retraction_count = 1 if control_temperatures else 3  # Retract more if we don't control the temperature.
                             for i in range(retraction_count):
-                                prepend_gcode += self.putValue(G = 10) + "\n"
+                                prepend_gcode += self.putValue(G=10) + "\n"
                         else:
-                            prepend_gcode += self.putValue(G = 1, E = -retraction_amount, F = retraction_speed * 60) + "\n"
+                            prepend_gcode += self.putValue(G=1, E=-retraction_amount, F=retraction_speed * 60) + "\n"
 
                     # Move the head away
-                    prepend_gcode += self.putValue(G = 1, Z = current_z + 1, F = 300) + "\n"
+                    prepend_gcode += self.putValue(G=1, Z=current_z + 1, F=300) + "\n"
 
                     # This line should be ok
-                    prepend_gcode += self.putValue(G = 1, X = park_x, Y = park_y, F = 9000) + "\n"
+                    prepend_gcode += self.putValue(G=1, X=park_x, Y=park_y, F=9000) + "\n"
 
                     if current_z < 15:
-                        prepend_gcode += self.putValue(G = 1, Z = 15, F = 300) + "\n"
+                        prepend_gcode += self.putValue(G=1, Z=15, F=300) + "\n"
 
                     if control_temperatures:
                         # Set extruder standby temperature
-                        prepend_gcode += self.putValue(M = 104, S = standby_temperature) + "; standby temperature\n"
+                        prepend_gcode += self.putValue(M=104, S=standby_temperature) + "; standby temperature\n"
 
                 # Wait till the user continues printing
-                prepend_gcode += self.putValue(M = 0) + ";Do the actual pause\n"
+                prepend_gcode += self.putValue(M=0) + ";Do the actual pause\n"
 
                 if not is_griffin:
                     if control_temperatures:
                         # Set extruder resume temperature
-                        prepend_gcode += self.putValue(M = 109, S = int(target_temperature.get(current_t, 0))) + "; resume temperature\n"
+                        prepend_gcode += self.putValue(M=109, S=int(
+                            target_temperature.get(current_t, 0))) + "; resume temperature\n"
 
                     # Push the filament back,
                     if retraction_amount != 0:
-                        prepend_gcode += self.putValue(G = 1, E = retraction_amount, F = retraction_speed * 60) + "\n"
+                        prepend_gcode += self.putValue(G=1, E=retraction_amount, F=retraction_speed * 60) + "\n"
 
                     # Optionally extrude material
                     if extrude_amount != 0:
-                        prepend_gcode += self.putValue(G = 1, E = extrude_amount, F = extrude_speed * 60) + "\n"
+                        prepend_gcode += self.putValue(G=1, E=extrude_amount, F=extrude_speed * 60) + "\n"
 
                     # and retract again, the properly primes the nozzle
                     # when changing filament.
                     if retraction_amount != 0:
-                        prepend_gcode += self.putValue(G = 1, E = -retraction_amount, F = retraction_speed * 60) + "\n"
+                        prepend_gcode += self.putValue(G=1, E=-retraction_amount, F=retraction_speed * 60) + "\n"
 
                     # Move the head back
-                    prepend_gcode += self.putValue(G = 1, Z = current_z + 1, F = 300) + "\n"
-                    prepend_gcode += self.putValue(G = 1, X = x, Y = y, F = 9000) + "\n"
+                    prepend_gcode += self.putValue(G=1, Z=current_z + 1, F=300) + "\n"
+                    prepend_gcode += self.putValue(G=1, X=x, Y=y, F=9000) + "\n"
                     if retraction_amount != 0:
-                        if firmware_retract: #Can't set the distance directly to what the user wants. We have to choose ourselves.
-                            retraction_count = 1 if control_temperatures else 3 #Retract more if we don't control the temperature.
+                        if firmware_retract:  # Can't set the distance directly to what the user wants. We have to choose ourselves.
+                            retraction_count = 1 if control_temperatures else 3  # Retract more if we don't control the temperature.
                             for i in range(retraction_count):
-                                prepend_gcode += self.putValue(G = 11) + "\n"
+                                prepend_gcode += self.putValue(G=11) + "\n"
                         else:
-                            prepend_gcode += self.putValue(G = 1, E = retraction_amount, F = retraction_speed * 60) + "\n"
-                    prepend_gcode += self.putValue(G = 1, F = 9000) + "\n"
-                    prepend_gcode += self.putValue(M = 82) + "\n"
+                            prepend_gcode += self.putValue(G=1, E=retraction_amount, F=retraction_speed * 60) + "\n"
+                    prepend_gcode += self.putValue(G=1, F=9000) + "\n"
+                    prepend_gcode += self.putValue(M=82) + "\n"
 
                     # reset extrude value to pre pause value
-                    prepend_gcode += self.putValue(G = 92, E = current_e) + "\n"
+                    prepend_gcode += self.putValue(G=92, E=current_e) + "\n"
 
                 layer = prepend_gcode + layer
 

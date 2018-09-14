@@ -143,6 +143,10 @@ class PostProcessingPlugin(QObject, Extension):
         ## Load all scripts in the scripts folders
         scripts = pkgutil.iter_modules(path = [path])
         for loader, script_name, ispkg in scripts:
+
+            if script_name == "subScript":
+                continue
+
             # Iterate over all scripts.
             if script_name not in sys.modules:
                 try:
