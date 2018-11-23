@@ -3,6 +3,7 @@
 
 import QtQuick 2.7
 import QtQuick.Controls 1.4
+import QtQuick.Controls 2.3 as Controls2
 import QtQuick.Controls.Styles 1.4
 import QtQuick.Layouts 1.1
 import QtQuick.Dialogs 1.2
@@ -97,215 +98,223 @@ UM.MainWindow
             id: menu
             window: base
 
-            Menu
-            {
-                id: fileMenu
-                title: catalog.i18nc("@title:menu menubar:toplevel","&File");
-                MenuItem
-                {
-                    id: newProjectMenu
-                    action: Cura.Actions.newProject;
-                }
+//            Menu
+//            {
+//                id: fileMenu
+//                title: catalog.i18nc("@title:menu menubar:toplevel","&File");
+//                MenuItem
+//                {
+//                    id: newProjectMenu
+//                    action: Cura.Actions.newProject;
+//                }
+//
+//                MenuItem
+//                {
+//                    id: openMenu
+//                    action: Cura.Actions.open;
+//                }
+//
+//                RecentFilesMenu { }
+//
+//                MenuItem
+//                {
+//                    id: saveWorkspaceMenu
+//                    text: catalog.i18nc("@title:menu menubar:file","&Save...")
+//                    onTriggered:
+//                    {
+//                        var args = { "filter_by_machine": false, "file_type": "workspace", "preferred_mimetypes": "application/vnd.ms-package.3dmanufacturing-3dmodel+xml" };
+//                        if(UM.Preferences.getValue("cura/dialog_on_project_save"))
+//                        {
+//                            saveWorkspaceDialog.args = args;
+//                            saveWorkspaceDialog.open()
+//                        }
+//                        else
+//                        {
+//                            UM.OutputDeviceManager.requestWriteToDevice("local_file", PrintInformation.jobName, args)
+//                        }
+//                    }
+//                }
+//
+//                MenuSeparator { }
+//
+//                MenuItem
+//                {
+//                    id: saveAsMenu
+//                    text: catalog.i18nc("@title:menu menubar:file", "&Export...")
+//                    onTriggered:
+//                    {
+//                        var localDeviceId = "local_file";
+//                        UM.OutputDeviceManager.requestWriteToDevice(localDeviceId, PrintInformation.jobName, { "filter_by_machine": false, "preferred_mimetypes": "application/vnd.ms-package.3dmanufacturing-3dmodel+xml"});
+//                    }
+//                }
+//
+//                MenuItem
+//                {
+//                    id: exportSelectionMenu
+//                    text: catalog.i18nc("@action:inmenu menubar:file", "Export Selection...");
+//                    enabled: UM.Selection.hasSelection;
+//                    iconName: "document-save-as";
+//                    onTriggered: UM.OutputDeviceManager.requestWriteSelectionToDevice("local_file", PrintInformation.jobName, { "filter_by_machine": false, "preferred_mimetypes": "application/vnd.ms-package.3dmanufacturing-3dmodel+xml"});
+//                }
+//
+//                MenuSeparator { }
+//
+//                MenuItem
+//                {
+//                    id: reloadAllMenu
+//                    action: Cura.Actions.reloadAll;
+//                }
+//
+//                MenuSeparator { }
+//
+//                MenuItem { action: Cura.Actions.quit; }
+//            }
+//
+//            Menu
+//            {
+//                title: catalog.i18nc("@title:menu menubar:toplevel","&Edit");
+//
+//                MenuItem { action: Cura.Actions.undo; }
+//                MenuItem { action: Cura.Actions.redo; }
+//                MenuSeparator { }
+//                MenuItem { action: Cura.Actions.selectAll; }
+//                MenuItem { action: Cura.Actions.arrangeAll; }
+//                MenuItem { action: Cura.Actions.deleteSelection; }
+//                MenuItem { action: Cura.Actions.deleteAll; }
+//                MenuItem { action: Cura.Actions.resetAllTranslation; }
+//                MenuItem { action: Cura.Actions.resetAll; }
+//                MenuSeparator { }
+//                MenuItem { action: Cura.Actions.groupObjects;}
+//                MenuItem { action: Cura.Actions.mergeObjects;}
+//                MenuItem { action: Cura.Actions.unGroupObjects;}
+//            }
+//
+//            ViewMenu { title: catalog.i18nc("@title:menu", "&View") }
+//
+//            Menu
+//            {
+//                id: settingsMenu
+//                title: catalog.i18nc("@title:menu", "&Settings")
+//
+//                PrinterMenu { title: catalog.i18nc("@title:menu menubar:settings", "&Printer") }
+//
+//                Instantiator
+//                {
+//                    model: Cura.ExtrudersModel { simpleNames: true }
+//                    Menu {
+//                        title: model.name
+//
+//                        NozzleMenu { title: Cura.MachineManager.activeDefinitionVariantsName; visible: Cura.MachineManager.hasVariants; extruderIndex: index }
+//                        MaterialMenu { title: catalog.i18nc("@title:menu", "&Material"); visible: Cura.MachineManager.hasMaterials; extruderIndex: index }
+//
+//                        MenuSeparator
+//                        {
+//                            visible: Cura.MachineManager.hasVariants || Cura.MachineManager.hasMaterials
+//                        }
+//
+//                        MenuItem
+//                        {
+//                            text: catalog.i18nc("@action:inmenu", "Set as Active Extruder")
+//                            onTriggered: Cura.MachineManager.setExtruderIndex(model.index)
+//                        }
+//
+//                        MenuItem
+//                        {
+//                            text: catalog.i18nc("@action:inmenu", "Enable Extruder")
+//                            onTriggered: Cura.MachineManager.setExtruderEnabled(model.index, true)
+//                            visible: !Cura.MachineManager.getExtruder(model.index).isEnabled
+//                        }
+//
+//                        MenuItem
+//                        {
+//                            text: catalog.i18nc("@action:inmenu", "Disable Extruder")
+//                            onTriggered: Cura.MachineManager.setExtruderEnabled(model.index, false)
+//                            visible: Cura.MachineManager.getExtruder(model.index).isEnabled
+//                            enabled: Cura.MachineManager.numberExtrudersEnabled > 1
+//                        }
+//
+//                    }
+//                    onObjectAdded: settingsMenu.insertItem(index, object)
+//                    onObjectRemoved: settingsMenu.removeItem(object)
+//                }
+//
+//                // TODO Only show in dev mode. Remove check when feature ready
+//                BuildplateMenu { title: catalog.i18nc("@title:menu", "&Build plate"); visible: CuraSDKVersion == "dev" ? Cura.MachineManager.hasVariantBuildplates : false }
+//                ProfileMenu { title: catalog.i18nc("@title:settings", "&Profile"); }
+//
+//                MenuSeparator { }
+//
+//                MenuItem { action: Cura.Actions.configureSettingVisibility }
+//            }
+//
+//            Menu
+//            {
+//                id: extension_menu
+//                title: catalog.i18nc("@title:menu menubar:toplevel","E&xtensions");
+//
+//                Instantiator
+//                {
+//                    id: extensions
+//                    model: UM.ExtensionModel { }
+//
+//                    Menu
+//                    {
+//                        id: sub_menu
+//                        title: model.name;
+//                        visible: actions != null
+//                        enabled: actions != null
+//                        Instantiator
+//                        {
+//                            model: actions
+//                            MenuItem
+//                            {
+//                                text: model.text
+//                                onTriggered: extensions.model.subMenuTriggered(name, model.text)
+//                            }
+//                            onObjectAdded: sub_menu.insertItem(index, object)
+//                            onObjectRemoved: sub_menu.removeItem(object)
+//                        }
+//                    }
+//
+//                    onObjectAdded: extension_menu.insertItem(index, object)
+//                    onObjectRemoved: extension_menu.removeItem(object)
+//                }
+//            }
+//
+//            Menu
+//            {
+//                id: plugin_menu
+//                title: catalog.i18nc("@title:menu menubar:toplevel", "&Marketplace")
+//
+//                MenuItem { action: Cura.Actions.browsePackages }
+//            }
+//
+//            Menu
+//            {
+//                id: preferencesMenu
+//                title: catalog.i18nc("@title:menu menubar:toplevel","P&references");
+//
+//                MenuItem { action: Cura.Actions.preferences; }
+//            }
 
-                MenuItem
-                {
-                    id: openMenu
-                    action: Cura.Actions.open;
-                }
-
-                RecentFilesMenu { }
-
-                MenuItem
-                {
-                    id: saveWorkspaceMenu
-                    text: catalog.i18nc("@title:menu menubar:file","&Save...")
-                    onTriggered:
-                    {
-                        var args = { "filter_by_machine": false, "file_type": "workspace", "preferred_mimetypes": "application/vnd.ms-package.3dmanufacturing-3dmodel+xml" };
-                        if(UM.Preferences.getValue("cura/dialog_on_project_save"))
-                        {
-                            saveWorkspaceDialog.args = args;
-                            saveWorkspaceDialog.open()
-                        }
-                        else
-                        {
-                            UM.OutputDeviceManager.requestWriteToDevice("local_file", PrintInformation.jobName, args)
-                        }
-                    }
-                }
-
-                MenuSeparator { }
-
-                MenuItem
-                {
-                    id: saveAsMenu
-                    text: catalog.i18nc("@title:menu menubar:file", "&Export...")
-                    onTriggered:
-                    {
-                        var localDeviceId = "local_file";
-                        UM.OutputDeviceManager.requestWriteToDevice(localDeviceId, PrintInformation.jobName, { "filter_by_machine": false, "preferred_mimetypes": "application/vnd.ms-package.3dmanufacturing-3dmodel+xml"});
-                    }
-                }
-
-                MenuItem
-                {
-                    id: exportSelectionMenu
-                    text: catalog.i18nc("@action:inmenu menubar:file", "Export Selection...");
-                    enabled: UM.Selection.hasSelection;
-                    iconName: "document-save-as";
-                    onTriggered: UM.OutputDeviceManager.requestWriteSelectionToDevice("local_file", PrintInformation.jobName, { "filter_by_machine": false, "preferred_mimetypes": "application/vnd.ms-package.3dmanufacturing-3dmodel+xml"});
-                }
-
-                MenuSeparator { }
-
-                MenuItem
-                {
-                    id: reloadAllMenu
-                    action: Cura.Actions.reloadAll;
-                }
-
-                MenuSeparator { }
-
-                MenuItem { action: Cura.Actions.quit; }
-            }
-
-            Menu
-            {
-                title: catalog.i18nc("@title:menu menubar:toplevel","&Edit");
-
-                MenuItem { action: Cura.Actions.undo; }
-                MenuItem { action: Cura.Actions.redo; }
-                MenuSeparator { }
-                MenuItem { action: Cura.Actions.selectAll; }
-                MenuItem { action: Cura.Actions.arrangeAll; }
-                MenuItem { action: Cura.Actions.deleteSelection; }
-                MenuItem { action: Cura.Actions.deleteAll; }
-                MenuItem { action: Cura.Actions.resetAllTranslation; }
-                MenuItem { action: Cura.Actions.resetAll; }
-                MenuSeparator { }
-                MenuItem { action: Cura.Actions.groupObjects;}
-                MenuItem { action: Cura.Actions.mergeObjects;}
-                MenuItem { action: Cura.Actions.unGroupObjects;}
-            }
-
-            ViewMenu { title: catalog.i18nc("@title:menu", "&View") }
-
-            Menu
-            {
-                id: settingsMenu
-                title: catalog.i18nc("@title:menu", "&Settings")
-
-                PrinterMenu { title: catalog.i18nc("@title:menu menubar:settings", "&Printer") }
-
-                Instantiator
-                {
-                    model: Cura.ExtrudersModel { simpleNames: true }
-                    Menu {
-                        title: model.name
-
-                        NozzleMenu { title: Cura.MachineManager.activeDefinitionVariantsName; visible: Cura.MachineManager.hasVariants; extruderIndex: index }
-                        MaterialMenu { title: catalog.i18nc("@title:menu", "&Material"); visible: Cura.MachineManager.hasMaterials; extruderIndex: index }
-
-                        MenuSeparator
-                        {
-                            visible: Cura.MachineManager.hasVariants || Cura.MachineManager.hasMaterials
-                        }
-
-                        MenuItem
-                        {
-                            text: catalog.i18nc("@action:inmenu", "Set as Active Extruder")
-                            onTriggered: Cura.MachineManager.setExtruderIndex(model.index)
-                        }
-
-                        MenuItem
-                        {
-                            text: catalog.i18nc("@action:inmenu", "Enable Extruder")
-                            onTriggered: Cura.MachineManager.setExtruderEnabled(model.index, true)
-                            visible: !Cura.MachineManager.getExtruder(model.index).isEnabled
-                        }
-
-                        MenuItem
-                        {
-                            text: catalog.i18nc("@action:inmenu", "Disable Extruder")
-                            onTriggered: Cura.MachineManager.setExtruderEnabled(model.index, false)
-                            visible: Cura.MachineManager.getExtruder(model.index).isEnabled
-                            enabled: Cura.MachineManager.numberExtrudersEnabled > 1
-                        }
-
-                    }
-                    onObjectAdded: settingsMenu.insertItem(index, object)
-                    onObjectRemoved: settingsMenu.removeItem(object)
-                }
-
-                // TODO Only show in dev mode. Remove check when feature ready
-                BuildplateMenu { title: catalog.i18nc("@title:menu", "&Build plate"); visible: CuraSDKVersion == "dev" ? Cura.MachineManager.hasVariantBuildplates : false }
-                ProfileMenu { title: catalog.i18nc("@title:settings", "&Profile"); }
-
-                MenuSeparator { }
-
-                MenuItem { action: Cura.Actions.configureSettingVisibility }
-            }
-
-            Menu
-            {
-                id: extension_menu
-                title: catalog.i18nc("@title:menu menubar:toplevel","E&xtensions");
-
-                Instantiator
-                {
-                    id: extensions
-                    model: UM.ExtensionModel { }
-
-                    Menu
-                    {
-                        id: sub_menu
-                        title: model.name;
-                        visible: actions != null
-                        enabled: actions != null
-                        Instantiator
-                        {
-                            model: actions
-                            MenuItem
-                            {
-                                text: model.text
-                                onTriggered: extensions.model.subMenuTriggered(name, model.text)
-                            }
-                            onObjectAdded: sub_menu.insertItem(index, object)
-                            onObjectRemoved: sub_menu.removeItem(object)
-                        }
-                    }
-
-                    onObjectAdded: extension_menu.insertItem(index, object)
-                    onObjectRemoved: extension_menu.removeItem(object)
-                }
-            }
-
-            Menu
-            {
-                id: plugin_menu
-                title: catalog.i18nc("@title:menu menubar:toplevel", "&Marketplace")
-
-                MenuItem { action: Cura.Actions.browsePackages }
-            }
-
-            Menu
-            {
-                id: preferencesMenu
-                title: catalog.i18nc("@title:menu menubar:toplevel","P&references");
-
-                MenuItem { action: Cura.Actions.preferences; }
-            }
-
-            Menu
+            Controls2.Menu
             {
                 id: helpMenu
                 title: catalog.i18nc("@title:menu menubar:toplevel","&Help");
 
-                MenuItem { action: Cura.Actions.showProfileFolder; }
-                MenuItem { action: Cura.Actions.documentation; }
-                MenuItem { action: Cura.Actions.reportBug; }
-                MenuSeparator { }
-                MenuItem { action: Cura.Actions.about; }
+//                MenuItem { action: Cura.Actions.showProfileFolder; }
+//                MenuItem { action: Cura.Actions.documentation; }
+//                MenuItem { action: Cura.Actions.reportBug; }
+//                MenuSeparator { }
+
+                Controls2.MenuItem
+                {
+                    text: "About..."
+                    onTriggered: Cura.Actions.about.trigger()
+
+                    Accessible.name: text
+                    Accessible.role: Accessible.MenuItem
+                }
             }
         }
 
@@ -328,6 +337,28 @@ UM.MainWindow
             height: parent.height - menu.height;
 
             Keys.forwardTo: menu
+
+            Rectangle
+            {
+                id: myButton
+                width: 200
+                height: 200
+                property bool active: false
+                Label
+                {
+                    id: label
+                    text: "Click"
+                }
+
+                Accessible.role: Accessible.Button
+                Accessible.name: label.text
+                Accessible.description: "does some thing"
+                Accessible.onPressAction:
+                {
+                    myButton.active = !myButton.active
+                    myButton.color = myButton.active ? "green" : "white"
+                }
+            }
 
             DropArea
             {
@@ -371,20 +402,23 @@ UM.MainWindow
                 }
             }
 
-            Button
+            Controls2.Button
             {
                 id: openFileButton;
                 text: catalog.i18nc("@action:button","Open File");
-                iconSource: UM.Theme.getIcon("load")
-                style: UM.Theme.styles.tool_button
-                tooltip: ""
+//                iconSource: UM.Theme.getIcon("load")
+//                style: UM.Theme.styles.tool_button
+//                tooltip: ""
                 anchors
                 {
                     top: topbar.bottom;
                     topMargin: UM.Theme.getSize("default_margin").height;
                     left: parent.left;
                 }
-                action: Cura.Actions.open;
+                onClicked: Cura.Actions.open.trigger()
+
+                Accessible.name: "Abrir"
+                Accessible.onPressAction: openFileButton.clicked()
             }
 
             Toolbar
