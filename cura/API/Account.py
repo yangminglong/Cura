@@ -38,6 +38,7 @@ class Account(QObject):
 
         self._callback_port = 32118
         self._oauth_root = "https://account.ultimaker.com"
+        self._cloud_api_root = "https://api.ultimaker.com"
 
         self._oauth_settings = OAuth2Settings(
             OAUTH_SERVER_URL= self._oauth_root,

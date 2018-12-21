@@ -283,6 +283,7 @@ class UM3OutputDevicePlugin(OutputDevicePlugin):
 
         global_container_stack = Application.getInstance().getGlobalContainerStack()
         if global_container_stack and device.getId() == global_container_stack.getMetaDataEntry("um_network_key"):
+            global_container_stack.setMetaDataEntry("connection_type", device.getConnectionType().value)
             device.connect()
             device.connectionStateChanged.connect(self._onDeviceConnectionStateChanged)
 
@@ -341,7 +342,6 @@ class UM3OutputDevicePlugin(OutputDevicePlugin):
 
             # Request more data if info is not complete
             if not info.address:
-                Logger.log("d", "Trying to get address of %s", name)
                 info = zero_conf.get_service_info(service_type, name)
 
             if info:
