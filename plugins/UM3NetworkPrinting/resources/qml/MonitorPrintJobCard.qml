@@ -178,10 +178,24 @@ Item
                 anchors.verticalCenter: parent.verticalCenter
                 buildplate: "Glass"
                 configurations:
-                [
-                    base.printJob.configuration.extruderConfigurations[0],
-                    base.printJob.configuration.extruderConfigurations[1]
-                ]
+                {
+                    var configs = []
+                    if (printJob)
+                    {
+                        for (var i = 0; i < printJob.configuration.extruderConfigurations.length; i++)
+                        {
+                            if (printJob.configuration.extruderConfigurations[i].activeMaterial)
+                            {
+                                configs.push(printJob.configuration.extruderConfigurations[i])
+                            }
+                        }
+                    }
+                    else
+                    {
+                        configs.push(null, null)
+                    }
+                    return configs
+                }
                 height: 72 * screenScaleFactor // TODO: Theme!
             }
             Label {

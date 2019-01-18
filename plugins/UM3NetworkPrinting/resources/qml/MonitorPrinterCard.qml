@@ -145,8 +145,13 @@ Item
                     var configs = []
                     if (printer)
                     {
-                        configs.push(printer.printerConfiguration.extruderConfigurations[0])
-                        configs.push(printer.printerConfiguration.extruderConfigurations[1])
+                        for (var i = 0; i < printer.printerConfiguration.extruderConfigurations.length; i++)
+                        {
+                            if (printer.printerConfiguration.extruderConfigurations[i].activeMaterial)
+                            {
+                                configs.push(printer.printerConfiguration.extruderConfigurations[i])
+                            }
+                        }
                     }
                     else
                     {

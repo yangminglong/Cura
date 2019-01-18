@@ -19,7 +19,7 @@ Item
     property alias buildplate: buildplateConfig.buildplate
 
     // Array of extracted extruder configurations
-    property var configurations: [null,null]
+    property alias configurations: extruderConfigurationRepeater.model
 
     // Default size, but should be stretched to fill parent
     height: 72 * parent.height
@@ -33,7 +33,6 @@ Item
         Repeater
         {
             id: extruderConfigurationRepeater
-            model: configurations
 
             MonitorExtruderConfiguration
             {
