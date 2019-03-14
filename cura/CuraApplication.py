@@ -127,6 +127,9 @@ from . import CameraAnimation
 from . import CuraActions
 from . import PrintJobPreviewImageProvider
 
+from cura.TaskManagement.HttpNetworkRequestManager import HttpNetworkRequestManager
+from cura.TaskManagement.OnExitCallbackManager import OnExitCallbackManager
+
 from cura import ApplicationMetadata, UltimakerCloudAuthentication
 
 if TYPE_CHECKING:
@@ -198,6 +201,8 @@ class CuraApplication(QtApplication):
         self.empty_material_container = None  # type: EmptyInstanceContainer
         self.empty_quality_container = None  # type: EmptyInstanceContainer
         self.empty_quality_changes_container = None  # type: EmptyInstanceContainer
+
+        self._http_network_request_manager = HttpNetworkRequestManager(parent = self)
 
         self._variant_manager = None
         self._material_manager = None
@@ -866,6 +871,9 @@ class CuraApplication(QtApplication):
 
         # Hide the splash screen
         self.closeSplash()
+
+    def getHttpNetworkRequestManager(self) -> "HttpNetworkRequestManager":
+        return self._http_network_request_manager
 
     @pyqtSlot(result = QObject)
     def getDiscoveredPrintersModel(self, *args) -> "DiscoveredPrintersModel":
