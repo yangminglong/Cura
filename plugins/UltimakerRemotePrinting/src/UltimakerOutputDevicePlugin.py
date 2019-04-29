@@ -146,12 +146,12 @@ class LocalDeviceManager():
 
     def _addDevice(self, hostname, address, properties) -> None:
         # Do nothing for now
-        self.devicesDiscovered.emit()
+        self._plugin.devicesDiscovered.emit()
         return None
 
     def _removeDevice(self, hostname) -> None:
         # Do nothing for now
-        self.devicesDiscovered.emit()
+        self._plugin.devicesDiscovered.emit()
         return None
 
 
@@ -172,11 +172,11 @@ class CloudDeviceManager():
 
     def _addDevice(self, hostname, address, properties) -> None:
         # Do nothing for now
-        self.devicesDiscovered.emit()
+        self._plugin.devicesDiscovered.emit()
         return None
 
     def _removeDevice(self, hostname) -> None:
         # Do nothing for now
-        self.devicesDiscovered.emit()
+        self._plugin.devicesDiscovered.emit()
         return None
 
