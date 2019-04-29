@@ -62,7 +62,7 @@ class DiscoverMachineAction(MachineAction):
     def startDiscovery(self) -> None:
         Logger.log("d", "Starting device discovery.")
         
-        if not self._network_plugin:
+        if not self._plugin:
             self._plugin = self._app.getOutputDeviceManager().getOutputDevicePlugin("UltimakerRemotePrinting")
             self._plugin.devicesDiscovered.connect(self._onDevicesDiscovered)
         
@@ -77,13 +77,13 @@ class DiscoverMachineAction(MachineAction):
     #   TODO: This should be an API call
     @pyqtSlot(QObject)
     def associateActiveMachineWithPrinterDevice(self, printer_device: Optional["PrinterOutputDevice"]) -> None:
-        if self._network_plugin:
-            self._network_plugin.associateActiveMachineWithPrinterDevice(printer_device)
+        if self._plugin:
+            self._plugin.associateActiveMachineWithPrinterDevice(printer_device)
 
     @pyqtSlot(result = str)
     def getLastManualEntryKey(self) -> str:
-        if self._network_plugin:
-            return self._network_plugin.getLastManualDevice()
+        if self._plugin:
+            return self._plugin.getLastManualDevice()
         return ""
     
     ##  List of discovered devices.
@@ -100,25 +100,25 @@ class DiscoverMachineAction(MachineAction):
     @pyqtSlot()
     def reset(self):
         Logger.log("d", "Reset the list of found devices.")
-        if self._network_plugin:
-            self._network_plugin.resetLastManualDevice()
+        if self._plugin:
+            self._plugin.resetLastManualDevice()
         self.discoveredDevicesChanged.emit()
 
     @pyqtSlot(str, str)
     def removeManualDevice(self, key, address):
-        if not self._network_plugin:
+        if not self._plugin:
             return
 
-        self._network_plugin.removeManualDevice(key, address)
+        self._plugin.removeManualDevice(key, address)
 
     @pyqtSlot(str, str)
     def setManualDevice(self, key, address):
         if key != "":
             # This manual printer replaces a current manual printer
-            self._network_plugin.removeManualDevice(key)
+            self._plugin.removeManualDevice(key)
 
         if address != "":
-            self._network_plugin.addManualDevice(address)
+            self._plugin.addManualDevice(address)
 
     @pyqtSlot()
     def loadConfigurationFromPrinter(self) -> None:
