@@ -1,0 +1,8 @@
+{
+    "name": "Ultimaker Remote Printing",
+    "author": "Ultimaker B.V.",
+    "description": "Connect your Ultimaker printers via LAN & Ultimaker Cloud.",
+    "version": "2.0.0",
+    "api": "6.0",
+    "i18n-catalog": "cura"
+}
