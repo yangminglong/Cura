@@ -13,6 +13,7 @@ from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtNetwork import QNetworkRequest, QNetworkAccessManager
 from UM.i18n import i18nCatalog
 from UM.Logger import Logger
+from UM.Signal import Signal, signalemitter
 from UM.OutputDevice.OutputDeviceManager import ManualDeviceAdditionAttempt
 from UM.OutputDevice.OutputDevicePlugin import OutputDevicePlugin
 from zeroconf import Zeroconf, ServiceBrowser, ServiceStateChange, ServiceInfo
@@ -23,7 +24,7 @@ catalog = i18nCatalog("cura")
 #   party connections, Bluetooth, whatever.
 class UltimakerOutputDevicePlugin(OutputDevicePlugin):
 
-    devicesDiscovered = pyqtSignal()
+    devicesDiscovered = Signal()
 
     def __init__(self):
         super().__init__()
@@ -39,6 +40,16 @@ class UltimakerOutputDevicePlugin(OutputDevicePlugin):
     def stop(self):
         self._local_device_manager._stopDiscovery()
         self._cloud_device_manager._stopDiscovery()
+
+    def addDevice(self, hostname, address, properties) -> None:
+        # Do nothing for now
+        self.devicesDiscovered.emit()
+        return None
+
+    def removeDevice(self, hostname) -> None:
+        # Do nothing for now
+        self.devicesDiscovered.emit()
+        return None
 
 
 
@@ -136,25 +147,13 @@ class LocalDeviceManager():
                 if device_type:
                     if device_type == b"printer":
                         address = '.'.join(map(lambda n: str(n), info.address))
-                        self._addDevice(str(name), address, info.properties)
+                        self._plugin.addDevice(str(name), address, info.properties)
                     else:
                         Logger.log("w", "The type of the found device is '%s', not 'printer'! Ignoring.." % device_type)
         # For services that are removed:
         elif state_change == ServiceStateChange.Removed:
             Logger.log("d", "Zeroconf service removed: %s" % name)
-            self._removeDevice(str(name))
-
-    def _addDevice(self, hostname, address, properties) -> None:
-        # Do nothing for now
-        self._plugin.devicesDiscovered.emit()
-        return None
-
-    def _removeDevice(self, hostname) -> None:
-        # Do nothing for now
-        self._plugin.devicesDiscovered.emit()
-        return None
-
-
+            self._plugin.removeDevice(str(name))
 
 class CloudDeviceManager():
 
@@ -169,14 +168,3 @@ class CloudDeviceManager():
     def _stopDiscovery(self) -> None:
         # Do nothing for now
         return None
-
-    def _addDevice(self, hostname, address, properties) -> None:
-        # Do nothing for now
-        self._plugin.devicesDiscovered.emit()
-        return None
-
-    def _removeDevice(self, hostname) -> None:
-        # Do nothing for now
-        self._plugin.devicesDiscovered.emit()
-        return None
-
