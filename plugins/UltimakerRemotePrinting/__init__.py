@@ -12,5 +12,5 @@ def getMetaData():
 def register(app):
     return {
         "output_device": UltimakerOutputDevicePlugin.UltimakerOutputDevicePlugin(),
-        "machine_action": DiscoverMachineAction.DiscoverMachineAction()
+        "machine_action": DiscoverMachineAction.DiscoverUM3Action()
     }

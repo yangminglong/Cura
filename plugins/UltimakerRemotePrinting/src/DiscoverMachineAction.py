@@ -16,41 +16,22 @@ catalog = i18nCatalog("cura")
 # This class is responsible for creating the discovery pop up, but does no actual logic itself.
 # It's just for exposing stuff to QML
 # TODO: What is a machine action?
-class DiscoverMachineAction(MachineAction):
+class DiscoverUM3Action(MachineAction):
 
     def __init__(self) -> None:
-        super().__init__("DiscoverMachineAction", catalog.i18nc("@action","Connect via Network"))
-        self._qml_url = "resources/qml/DiscoverUM3Action.qml"
-        self._plugin = None #type: Optional[UM3OutputDevicePlugin]
-        self.__additional_components_view = None #type: Optional[QObject]
+        super().__init__("DiscoverUM3Action", catalog.i18nc("@action","Connect via Network"))
+        self._qml_url = "resources/qml/DiscoverMachineAction.qml"
+        self._plugin = None #type: Optional[UlitmakerOutputDevicePlugin]
         self._app = CuraApplication.getInstance()
-
-        # Wait for Cura's QML engine to be ready, then create UI components.
-        self._app.engineCreatedSignal.connect(self._createUIComponents)
+        self._devices = []
 
     ##  This is an internal-only signal which is emitted when the main plugin discovers devices.
     #   Its only purpose is to update properties exposed to QML. Do not connect it anywhere else!
     discoveredDevicesChanged = pyqtSignal()
 
     ##  Emit the discoveredDevicesChanged signal when the main plugin discovers devices.
-    def _onDevicesDiscovered(self) -> None:
+    def _onDeviceDiscovered(self) -> None:
         self.discoveredDevicesChanged.emit()
-
-    ##  Create UI components for machine discovery.
-    def _createUIComponents(self) -> None:
-        Logger.log("d", "Creating additional ui components for UM3.")
-
-        # Create networking dialog
-        plugin_path = PluginRegistry.getInstance().getPluginPath("UltimakerRemotePrinting")
-        if not plugin_path:
-            return
-        qml_path = os.path.join(plugin_path, "resources/qml/UM3InfoComponents.qml")
-        self.__additional_components_view = self._app.createQmlComponent(qml_path, {
-            "manager": self
-        })
-        if not self.__additional_components_view:
-            Logger.log("w", "Could not create ui components for UM3.")
-            return
 
 
 
@@ -64,9 +45,8 @@ class DiscoverMachineAction(MachineAction):
         
         if not self._plugin:
             self._plugin = self._app.getOutputDeviceManager().getOutputDevicePlugin("UltimakerRemotePrinting")
-            self._plugin.devicesDiscovered.connect(self._onDevicesDiscovered)
-        
-        self._plugin.startDiscovery()
+        self._plugin.deviceDiscovered.connect(self._onDeviceDiscovered)
+        self._plugin.start()
 
     # TODO: From here on down, everything is just a wrapper for the main plugin, needlessly adding
     # complexity. The plugin itself should be able to expose these things to QML without using these
@@ -89,19 +69,19 @@ class DiscoverMachineAction(MachineAction):
     ##  List of discovered devices.
     @pyqtProperty("QVariantList", notify = discoveredDevicesChanged)
     def discoveredDevices(self): # TODO: Typing!
-        if self._plugin:
-            devices = list(self._plugin.getDiscoveredDevices().values())
-            devices.sort(key = lambda k: k.name)
-            return devices
-        else:
-            return []
+        if not self._plugin:
+            self._plugin = self._app.getOutputDeviceManager().getOutputDevicePlugin("UltimakerRemotePrinting")
+        devices = list(self._plugin.getDiscoveredLocalDevices().values())
+        devices.sort(key = lambda k: k.name)
+        return devices
+        # return []
 
     ##  Re-filters the list of devices.
     @pyqtSlot()
     def reset(self):
         Logger.log("d", "Reset the list of found devices.")
-        if self._plugin:
-            self._plugin.resetLastManualDevice()
+        # if self._plugin:
+            # self._plugin.resetLastManualDevice()
         self.discoveredDevicesChanged.emit()
 
     @pyqtSlot(str, str)
@@ -130,3 +110,6 @@ class DiscoverMachineAction(MachineAction):
         for index in range(len(material_ids)):
             machine_manager.printerOutputDevices[0].materialIdChanged.emit(index, material_ids[index])
     
+    @pyqtSlot()
+    def restartDiscovery(self):
+        self.startDiscovery()

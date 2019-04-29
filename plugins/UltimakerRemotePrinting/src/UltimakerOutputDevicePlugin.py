@@ -17,6 +17,9 @@ from UM.Signal import Signal, signalemitter
 from UM.OutputDevice.OutputDeviceManager import ManualDeviceAdditionAttempt
 from UM.OutputDevice.OutputDevicePlugin import OutputDevicePlugin
 from zeroconf import Zeroconf, ServiceBrowser, ServiceStateChange, ServiceInfo
+from typing import Optional, TYPE_CHECKING, Dict
+
+from .UltimakerLocalOutputDevice import UltimakerLocalOutputDevice
 
 catalog = i18nCatalog("cura")
 
@@ -24,12 +27,16 @@ catalog = i18nCatalog("cura")
 #   party connections, Bluetooth, whatever.
 class UltimakerOutputDevicePlugin(OutputDevicePlugin):
 
-    devicesDiscovered = Signal()
+    deviceDiscovered = Signal()
 
     def __init__(self):
         super().__init__()
         self._local_device_manager = LocalDeviceManager(self)
         self._cloud_device_manager = CloudDeviceManager(self)
+        self._discovered_devices = {
+            "local": {},
+            "cloud": {}
+        }
 
     ##  Start looking for devices.
     def start(self) -> None:
@@ -37,19 +44,35 @@ class UltimakerOutputDevicePlugin(OutputDevicePlugin):
         self._cloud_device_manager._startDiscovery()
 
     ## Stop looking for devices.
-    def stop(self):
+    def stop(self) -> None:
         self._local_device_manager._stopDiscovery()
         self._cloud_device_manager._stopDiscovery()
 
-    def addDevice(self, hostname, address, properties) -> None:
+    def addDevice(self, hostname, connection_type, properties, address) -> None:
+        if connection_type is "local":
+            device = UltimakerLocalOutputDevice(hostname, address, properties)
+        elif connection_type is "cloud":
+            # TODO: Handle!
+            device = None
+        else:
+            # TODO: Handle!
+            return
+        self._discovered_devices[connection_type][hostname] = device
+        self.deviceDiscovered.emit()
+
+    def removeDevice(self, hostname, connection_type) -> None:
         # Do nothing for now
-        self.devicesDiscovered.emit()
+        self.deviceDiscovered.emit()
         return None
 
-    def removeDevice(self, hostname) -> None:
-        # Do nothing for now
-        self.devicesDiscovered.emit()
-        return None
+    def getDiscoveredDevices(self) -> Dict:
+        return self._discovered_devices
+    
+    def getDiscoveredCloudDevices(self) -> Dict:
+        return self._discovered_devices["cloud"]
+
+    def getDiscoveredLocalDevices(self) -> Dict:
+        return self._discovered_devices["local"]
 
 
 
@@ -69,54 +92,58 @@ class LocalDeviceManager():
     def __init__(self, plugin: UltimakerOutputDevicePlugin):
         self._plugin = plugin
         self._discovered_devices = {} # TODO: Typing!
-        self._zero_conf_browser = None
-        self._zero_conf = None
-        self._last_zero_conf_event_time = time.time() #type: float
+        self._zeroconf_browser = None
+        self._zeroconf = None
+        self._last_zeroconf_event_time = time.time() #type: float
 
         # Time to wait after a zero-conf service change before allowing a zeroconf reset
-        self._zero_conf_change_grace_period = 0.25 #type: float
+        self._zeroconf_change_grace_period = 0.25 #type: float
     
     ##  Start searching for local printers (on LAN, with Zeroconf).
     def _startDiscovery(self) -> None:
-
-        Logger.log("i", "Starting local (zeroconf) discovery.")
-
-        # Ensure that there is a bit of time after a printer has been discovered. This is a work
-        # around for an issue with Qt 5.5.1 up to Qt 5.7 which can segfault if we do this too often.
-        # It's most likely that the QML engine is still creating delegates, where the python side
-        # already deleted or garbage collected the data. Whatever the case, waiting a bit ensures
-        # that it doesn't crash.
-        if time.time() - self._last_zero_conf_event_time > self._zero_conf_change_grace_period:
+        
+        # Ensure that there is a bit of time after a printer has been discovered.
+        # This is a work around for an issue with Qt 5.5.1 up to Qt 5.7 which can segfault if we do this too often.
+        # It's most likely that the QML engine is still creating delegates, where the python side already deleted or
+        # garbage collected the data.
+        # Whatever the case, waiting a bit ensures that it doesn't crash.
+        if time.time() - self._last_zeroconf_event_time > self._zeroconf_change_grace_period:
             
-            # Stop any previously running Zeroconf discovery and destroy existing browser.
+            # Start fresh...
             self._stopDiscovery()
-            if self._zero_conf_browser:
-                self._zero_conf_browser.cancel()
-                self._zero_conf_browser = None
 
-            # Remove any previously discovered devices from the discovered devices list.
-            # for device in list(self._discovered_devices):
-            #     self._removeDevice(device)
+            Logger.log("i", "Starting local (zeroconf) discovery.")
 
             # Create a new Zeroconf browser and start searching.
-            self._zero_conf = Zeroconf()
-            self._zero_conf_browser = ServiceBrowser(
-                Zeroconf(),
-                u'_ultimaker._tcp.local.',
-                [self._onServiceChanged]
+            if not self._zeroconf:
+                self._zeroconf = Zeroconf()
+
+            if not self._zeroconf_browser:
+                self._zeroconf_browser = ServiceBrowser(
+                    Zeroconf(),
+                    u'_ultimaker._tcp.local.',
+                    [self._onServiceChanged]
             )
 
-    ##  Stop searching for local printers (on LAN, with Zeroconf).
+    ##  Stop any previously running Zeroconf discovery and destroy existing browser.
     def _stopDiscovery(self) -> None:
-        if self._zero_conf is not None:
+
+        # Cancel the browser if it exists.
+        if self._zeroconf_browser:
+            self._zeroconf_browser.cancel()
+            self._zeroconf_browser = None
+
+        # Close Zeroconf if it exists
+        if self._zeroconf:
             Logger.log("d", "Closing Zeroconf...")
-            self._zero_conf.close()
+            self._zeroconf.close()
+            self._zeroconf = None
 
         ##  Triggered when a zeroconf service is found
     def _onServiceChanged(self, zeroconf, service_type, name, state_change) -> None:
 
         # Reset the Zeroconf timer
-        self._last_zero_conf_event_time = time.time()
+        self._last_zeroconf_event_time = time.time()
 
         # For services that are added:
         if state_change == ServiceStateChange.Added:
@@ -147,13 +174,13 @@ class LocalDeviceManager():
                 if device_type:
                     if device_type == b"printer":
                         address = '.'.join(map(lambda n: str(n), info.address))
-                        self._plugin.addDevice(str(name), address, info.properties)
+                        self._plugin.addDevice(str(name), "local", info.properties, address)
                     else:
                         Logger.log("w", "The type of the found device is '%s', not 'printer'! Ignoring.." % device_type)
         # For services that are removed:
         elif state_change == ServiceStateChange.Removed:
             Logger.log("d", "Zeroconf service removed: %s" % name)
-            self._plugin.removeDevice(str(name))
+            self._plugin.removeDevice(str(name), "local")
 
 class CloudDeviceManager():
 
