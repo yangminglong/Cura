@@ -141,3 +141,43 @@ class UltimakerOutputDevicePlugin(OutputDevicePlugin):
             self.removeManualDevice(key)
         if address != "":
             self.addManualDevice(address)
+
+    ##  Associate the currently active machine with the given printer device. The network connection
+    #   information will be stored into the metadata of the currently active machine.
+    def addOutputDeviceToActiveMachine(self, output_device: "PrinterOutputDevice"):
+        Logger.log("d", "Attempting to set the network key of the active machine to %s", output_device.key)
+
+        global_container_stack = CuraApplication.getInstance().getGlobalContainerStack()
+        if not global_container_stack:
+            return
+
+        meta_data = global_container_stack.getMetaData()
+
+        if "um_network_key" in meta_data:  # Global stack already had a connection, but it's changed.
+            old_network_key = meta_data["um_network_key"]
+            # Since we might have a bunch of hidden stacks, we also need to change it there.
+            metadata_filter = {"um_network_key": old_network_key}
+            containers = self._application.getContainerRegistry().findContainerStacks(type = "machine", **metadata_filter)
+
+            for container in containers:
+                container.setMetaDataEntry("um_network_key", output_device.key)
+
+                # Delete old authentication data.
+                Logger.log("d", "Removing old authentication id %s for device %s",
+                           global_container_stack.getMetaDataEntry("network_authentication_id", None), output_device.key)
+
+                container.removeMetaDataEntry("network_authentication_id")
+                container.removeMetaDataEntry("network_authentication_key")
+
+                # Ensure that these containers do know that they are configured for network connection
+                container.addConfiguredConnectionType(output_device.connectionType.value)
+
+        else:  # Global stack didn't have a connection yet, configure it.
+            global_container_stack.setMetaDataEntry("um_network_key", output_device.key)
+            global_container_stack.addConfiguredConnectionType(output_device.connectionType.value)
+
+        self.refreshConnections()
+
+    def getLastManualEntryKey(self):
+        return None
+        

@@ -50,15 +50,19 @@ class DiscoverUM3Action(MachineAction):
         if not plugin_path:
             return
         path = os.path.join(plugin_path, "resources/qml/UM3InfoComponents.qml")
-        self._additional_ui_components = CuraApplication.getInstance().createQmlComponent(path, {
-            "manager": self
-        })
+        self._additional_ui_components = self._app.createQmlComponent(path, {"manager": self})
         if not self._additional_ui_components:
             Logger.log("w", "Could not create UI components for Ultimaker Remote Printing.")
             return
 
         # Create extra components.
-        self._app.addAdditionalComponent("monitorButtons", self._additional_ui_components.findChild(QObject, "networkPrinterConnectButton"))
+        self._app.addAdditionalComponent(
+            "monitorButtons",
+            self._additional_ui_components.findChild(
+                QObject,
+                "networkPrinterConnectButton"
+            )
+        )
 
     ##  Override parent method in MachineAction.
     #   This requires not attention from the user (any more), so we don't need to show any 'upgrade
@@ -78,24 +82,10 @@ class DiscoverUM3Action(MachineAction):
         if not self._plugin:
             self._plugin = self._getPlugin()
         self._plugin.deviceDiscovered.connect(self._onDeviceDiscovered)
-        self._plugin.start()
-
-    ##  Associate the currently active machine with the given printer device. The network connection
-    #   information will be stored into the metadata of the currently active machine.
-    #   TODO: This should be an API call
-    @pyqtSlot(QObject)
-    def associateActiveMachineWithPrinterDevice(self, printer_device: Optional["PrinterOutputDevice"]) -> None:
-        if not self._plugin:
-            self._plugin = self._getPlugin()
-        self._plugin.associateActiveMachineWithPrinterDevice(printer_device)
-
-    @pyqtSlot(result = str)
-    def getLastManualEntryKey(self) -> str:
-        if not self._plugin:
-            self._plugin = self._getPlugin()
-        return self._plugin.getLastManualDevice()
+        return self._plugin.start()
     
     ##  List of discovered devices.
+    #   NOTE: Was formerly called 'foundDevices'
     @pyqtProperty("QVariantList", notify = discoveredDevicesChanged)
     def discoveredDevices(self): # TODO: Typing!
         if not self._plugin:
@@ -104,50 +94,63 @@ class DiscoverUM3Action(MachineAction):
         devices.sort(key = lambda k: k.name)
         return devices
 
-    ##  Pass-through. See UltimakerOutputDevicePlugin.resetLastManualDevice().
-    # TODO: was formerly called "reset"
+    ##  Pass-through. See UltimakerOutputDevicePlugin.
+    @pyqtSlot(result = str)
+    def getLastManualEntryKey(self) -> str:
+        if not self._plugin:
+            self._plugin = self._getPlugin()
+        return self._plugin.getLastManualEntryKey()
+
+    ##  Pass-through. See UltimakerOutputDevicePlugin. NOTE: Was formerly called 'associateActiveMachineWithPrinterDevice'.
+    @pyqtSlot(QObject)
+    def addOutputDeviceToActiveMachine(self, output_device: "PrinterOutputDevice") -> None:
+        if not self._plugin:
+            self._plugin = self._getPlugin()
+        return self._plugin.addOutputDeviceToActiveMachine(output_device)
+    
+    ##  Pass-through. See UltimakerOutputDevicePlugin. NOTE: Was formerly called 'reset'.
     @pyqtSlot()
     def resetLastManualDevice(self):
         if not self._plugin:
             self._plugin = self._getPlugin()
-        self._plugin.resetLastManualDevice()
+        return self._plugin.resetLastManualDevice()
 
-    ##  Pass-through. See UltimakerOutputDevicePlugin.activeMachineNetworkKey().
+    ##  Pass-through. See UltimakerOutputDevicePlugin.
     @pyqtSlot(result = str)
     def activeMachineNetworkKey(self) -> str:
         if not self._plugin:
             self._plugin = self._getPlugin()
         return self._plugin.activeMachineNetworkKey()
     
-    ##  Pass-through. See UltimakerOutputDevicePlugin.activeMachineHasNetworkKey().
+    ##  Pass-through. See UltimakerOutputDevicePlugin.
     @pyqtSlot(str, result = bool)
     def activeMachineHasNetworkKey(self, key: str) -> bool:
         if not self._plugin:
             self._plugin = self._getPlugin()
         return self._plugin.activeMachineHasNetworkKey()
     
-    ##  Pass-through. See UltimakerOutputDevicePlugin.setGroupName().
+    ##  Pass-through. See UltimakerOutputDevicePlugin.
     @pyqtSlot(str)
     def setGroupName(self, group_name: str) -> None:
         if not self._plugin:
             self._plugin = self._getPlugin()
         return self._plugin.setGroupName()
 
-    ##  Pass-through. See UltimakerOutputDevicePlugin.removeManualDevice().
+    ##  Pass-through. See UltimakerOutputDevicePlugin.
     @pyqtSlot(str, str)
     def removeManualDevice(self, key: str, address: str) -> None:
         if not self._plugin:
             self._plugin = self._getPlugin()
         return self._plugin.removeManualDevice(key, address)
 
-    ##  Pass-through. See UltimakerOutputDevicePlugin.setManualDevice().
+    ##  Pass-through. See UltimakerOutputDevicePlugin.
     @pyqtSlot(str, str)
     def setManualDevice(self, key: str, address: str) -> None:
         if not self._plugin:
             self._plugin = self._getPlugin()
         return self._plugin.setManualDevice(key, address)
 
-    ##  Pass-through. See UltimakerOutputDevicePlugin.loadConfigurationFromPrinter().
+    ##  Pass-through. See UltimakerOutputDevicePlugin.
     @pyqtSlot()
     def loadConfigurationFromPrinter(self) -> None:
         if not self._plugin:
