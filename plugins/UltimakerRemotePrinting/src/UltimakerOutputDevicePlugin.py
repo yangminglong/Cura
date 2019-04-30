@@ -78,7 +78,7 @@ class UltimakerOutputDevicePlugin(OutputDevicePlugin):
 
     # TODO: Replace with API calls, we should not be touching internal Cura data structures!
     # TODO: Only identify printers using host names, never network keys!
-    def activeMachineNetworkKey(self) -> Str:
+    def activeMachineNetworkKey(self) -> str:
         global_container_stack = CuraApplication.getInstance().getGlobalContainerStack()
         if global_container_stack:
             meta_data = global_container_stack.getMetaData()
@@ -99,7 +99,6 @@ class UltimakerOutputDevicePlugin(OutputDevicePlugin):
             if machine.getMetaDataEntry(key) == value:
                 machine.setMetaDataEntry(key, new_value)
     
-    @pyqtSlot(str)
     def setGroupName(self, group_name: str) -> None:
         Logger.log("d", "Attempting to set the group name of the active machine to %s", group_name)
         global_container_stack = CuraApplication.getInstance().getGlobalContainerStack()
