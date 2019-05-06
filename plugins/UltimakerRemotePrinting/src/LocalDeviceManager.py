@@ -100,6 +100,7 @@ class LocalDeviceManager():
                 if device_type:
                     if device_type == b"printer":
                         address = '.'.join(map(lambda n: str(n), info.address))
+                        print("ADDING DEVICE", str(name))
                         self._plugin.addDevice(str(name), "local", info.properties, address)
                     else:
                         Logger.log("w", "The type of the found device is '%s', not 'printer'! Ignoring..." % device_type)

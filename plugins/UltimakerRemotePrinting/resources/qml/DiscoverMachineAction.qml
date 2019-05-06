@@ -22,14 +22,14 @@ Cura.MachineAction
         if(base.selectedDevice && base.completeProperties)
         {
             var printerKey = base.selectedDevice.key
-            var printerName = base.selectedDevice.name // TODO To change when the groups have a name
-            if (manager.activeMachineNetworkKey() != printerKey)
+            var printerName = base.selectedDevice.name
+            if (manager.activeMachineHostName() != printerKey)
             {
                 // Check if there is another instance with the same key
-                if (!manager.activeMachineHasNetworkKey(printerKey))
+                if (!manager.activeMachineHasHostName(printerKey))
                 {
                     manager.addOutputDeviceToActiveMachine(base.selectedDevice)
-                    manager.setGroupName(printerName)   // TODO To change when the groups have a name
+                    manager.setGroupName(printerName)
                     completed()
                 }
                 else

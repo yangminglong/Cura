@@ -63,31 +63,26 @@ class UltimakerOutputDevicePlugin(OutputDevicePlugin):
         self.deviceDiscovered.emit()
 
     def removeDevice(self, hostname, connection_type) -> None:
-        # Do nothing for now
         self.deviceDiscovered.emit()
         return None
 
-    def getDiscoveredDevices(self) -> Dict:
+    def getDiscoveredDevices(self, connection_type: Optional[str]) -> Dict:
+        if connection_type and self._discovered_devices[connection_type]:
+            return self._discovered_devices[connection_type]
         return self._discovered_devices
-    
-    def getDiscoveredCloudDevices(self) -> Dict:
-        return self._discovered_devices["cloud"]
-
-    def getDiscoveredLocalDevices(self) -> Dict:
-        return self._discovered_devices["local"]
 
     # TODO: Replace with API calls, we should not be touching internal Cura data structures!
     # TODO: Only identify printers using host names, never network keys!
-    def activeMachineNetworkKey(self) -> str:
+    def activeMachineHostName(self) -> str:
         global_container_stack = CuraApplication.getInstance().getGlobalContainerStack()
         if global_container_stack:
             meta_data = global_container_stack.getMetaData()
-            if "um_network_key" in meta_data:
-                return global_container_stack.getMetaDataEntry("um_network_key")
+            if "host_name" in meta_data:
+                return global_container_stack.getMetaDataEntry("host_name")
         return ""
 
-    def activeMachineHasNetworkKey(self, key: str) -> bool:
-        metadata_filter = {"um_network_key": key}
+    def activeMachineHasHostName(self, key: str) -> bool:
+        metadata_filter = {"host_name": key}
         containers = CuraContainerRegistry.getInstance().findContainerStacks(type="machine", **metadata_filter)
         return bool(containers)
 
