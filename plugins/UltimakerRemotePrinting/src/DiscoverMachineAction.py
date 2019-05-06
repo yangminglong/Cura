@@ -90,7 +90,7 @@ class DiscoverUM3Action(MachineAction):
     def discoveredDevices(self): # TODO: Typing!
         if not self._plugin:
             self._plugin = self._getPlugin()
-        devices = list(self._plugin.getDiscoveredLocalDevices().values())
+        devices = list(self._plugin.getDiscoveredDevices("local").values())
         devices.sort(key = lambda k: k.name)
         return devices
 
@@ -123,11 +123,11 @@ class DiscoverUM3Action(MachineAction):
         return self._plugin.activeMachineHostName()
     
     ##  Pass-through. See UltimakerOutputDevicePlugin.
-    @pyqtSlot(result = bool)
-    def activeMachineHasHostName(self) -> bool:
+    @pyqtSlot(str, result = bool)
+    def activeMachineHasHostName(self, host_name: str) -> bool:
         if not self._plugin:
             self._plugin = self._getPlugin()
-        return self._plugin.activeMachineHasHostName()
+        return self._plugin.activeMachineHasHostName(host_name)
     
     ##  Pass-through. See UltimakerOutputDevicePlugin.
     @pyqtSlot(str)
