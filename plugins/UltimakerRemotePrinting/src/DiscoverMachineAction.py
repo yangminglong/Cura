@@ -20,7 +20,7 @@ catalog = i18nCatalog("cura")
 class DiscoverUM3Action(MachineAction):
 
     def __init__(self) -> None:
-        super().__init__("DiscoverUM3Action", catalog.i18nc("@action","Connect via Network"))
+        super().__init__("DiscoverUM3Action", catalog.i18nc("@action", "Connect via Network"))
         self._qml_url = "resources/qml/DiscoverMachineAction.qml"
         self._plugin = None #type: Optional[UltimakerOutputDevicePlugin]
         self._app = CuraApplication.getInstance()

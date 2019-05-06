@@ -103,6 +103,7 @@ class LocalDeviceManager():
                         self._plugin.addDevice(str(name), "local", info.properties, address)
                     else:
                         Logger.log("w", "The type of the found device is '%s', not 'printer'! Ignoring..." % device_type)
+        
         # For services that are removed:
         elif state_change == ServiceStateChange.Removed:
             Logger.log("d", "Zeroconf service removed: %s" % name)
