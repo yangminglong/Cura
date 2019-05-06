@@ -22,6 +22,7 @@ from UM.OutputDevice.OutputDeviceManager import ManualDeviceAdditionAttempt
 from UM.OutputDevice.OutputDevicePlugin import OutputDevicePlugin
 from UM.Signal import Signal, signalemitter
 from zeroconf import Zeroconf, ServiceBrowser, ServiceStateChange, ServiceInfo
+from cura.CuraApplication import CuraApplication
 
 catalog = i18nCatalog("cura")
 
@@ -81,8 +82,8 @@ class UltimakerOutputDevicePlugin(OutputDevicePlugin):
                 return global_container_stack.getMetaDataEntry("host_name")
         return ""
 
-    def activeMachineHasHostName(self, key: str) -> bool:
-        metadata_filter = {"host_name": key}
+    def activeMachineHasHostName(self, host_name: str) -> bool:
+        metadata_filter = {"host_name": host_name}
         containers = CuraContainerRegistry.getInstance().findContainerStacks(type="machine", **metadata_filter)
         return bool(containers)
 
@@ -115,7 +116,7 @@ class UltimakerOutputDevicePlugin(OutputDevicePlugin):
     # TODO: What is this doing?
     # TODO: Replace with API calls, we should not be touching internal Cura data structures!
     def loadConfigurationFromPrinter(self) -> None:
-        machine_manager = self._app.getMachineManager()
+        machine_manager = CuraApplication.getInstance().getMachineManager()
         hotend_ids = machine_manager.printerOutputDevices[0].hotendIds
         for index in range(len(hotend_ids)):
             machine_manager.printerOutputDevices[0].hotendIdChanged.emit(index, hotend_ids[index])
@@ -133,7 +134,7 @@ class UltimakerOutputDevicePlugin(OutputDevicePlugin):
     def setManualDevice(self, key: str, address: str):
         if key != "":
             # This manual printer replaces a current manual printer
-            self.removeManualDevice(key)
+            self.removeManualDevice(key, address)
         if address != "":
             self.addManualDevice(address)
 
@@ -148,18 +149,18 @@ class UltimakerOutputDevicePlugin(OutputDevicePlugin):
 
         meta_data = global_container_stack.getMetaData()
 
-        if "um_network_key" in meta_data:  # Global stack already had a connection, but it's changed.
-            old_network_key = meta_data["um_network_key"]
+        if "host_name" in meta_data:  # Global stack already had a connection, but it's changed.
+            old_host_name = meta_data["host_name"]
             # Since we might have a bunch of hidden stacks, we also need to change it there.
-            metadata_filter = {"um_network_key": old_network_key}
-            containers = self._application.getContainerRegistry().findContainerStacks(type = "machine", **metadata_filter)
+            metadata_filter = {"host_name": old_host_name}
+            containers = CuraApplication.getInstance().getContainerRegistry().findContainerStacks(type = "machine", **metadata_filter)
 
             for container in containers:
-                container.setMetaDataEntry("um_network_key", output_device.key)
+                container.setMetaDataEntry("host_name", output_device.hostName)
 
                 # Delete old authentication data.
                 Logger.log("d", "Removing old authentication id %s for device %s",
-                           global_container_stack.getMetaDataEntry("network_authentication_id", None), output_device.key)
+                           global_container_stack.getMetaDataEntry("network_authentication_id", None), output_device.hostName)
 
                 container.removeMetaDataEntry("network_authentication_id")
                 container.removeMetaDataEntry("network_authentication_key")
@@ -168,7 +169,7 @@ class UltimakerOutputDevicePlugin(OutputDevicePlugin):
                 container.addConfiguredConnectionType(output_device.connectionType.value)
 
         else:  # Global stack didn't have a connection yet, configure it.
-            global_container_stack.setMetaDataEntry("um_network_key", output_device.key)
+            global_container_stack.setMetaDataEntry("host_name", output_device.hostName)
             global_container_stack.addConfiguredConnectionType(output_device.connectionType.value)
 
         self.refreshConnections()

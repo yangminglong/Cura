@@ -21,22 +21,24 @@ Cura.MachineAction
     {
         if(base.selectedDevice && base.completeProperties)
         {
-            var printerKey = base.selectedDevice.key
+            var hostName = base.selectedDevice.hostName
             var printerName = base.selectedDevice.name
-            if (manager.activeMachineHostName() != printerKey)
+
+            // Check if there is another instance with the same key
+            if (manager.activeMachineHostName() == hostName)
             {
-                // Check if there is another instance with the same key
-                if (!manager.activeMachineHasHostName(printerKey))
-                {
-                    manager.addOutputDeviceToActiveMachine(base.selectedDevice)
-                    manager.setGroupName(printerName)
-                    completed()
-                }
-                else
-                {
-                    existingConnectionDialog.open()
-                }
+                existingConnectionDialog.open()
             }
+            else
+            {
+                manager.addOutputDeviceToActiveMachine(base.selectedDevice)
+                manager.setGroupName(printerName)
+                completed()
+            }
+        }
+        else
+        {
+            // Things aren't complete... not sure what to do about that yet.
         }
     }
 
