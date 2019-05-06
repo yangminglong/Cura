@@ -22,13 +22,13 @@ Cura.MachineAction
         if(base.selectedDevice && base.completeProperties)
         {
             var printerKey = base.selectedDevice.key
-            var printerName = base.selectedDevice.name  // TODO To change when the groups have a name
-            if (manager.getStoredKey() != printerKey)
+            var printerName = base.selectedDevice.name // TODO To change when the groups have a name
+            if (manager.activeMachineNetworkKey() != printerKey)
             {
                 // Check if there is another instance with the same key
-                if (!manager.existsKey(printerKey))
+                if (!manager.activeMachineHasNetworkKey(printerKey))
                 {
-                    manager.associateActiveMachineWithPrinterDevice(base.selectedDevice)
+                    manager.addOutputDeviceToActiveMachine(base.selectedDevice)
                     manager.setGroupName(printerName)   // TODO To change when the groups have a name
                     completed()
                 }
@@ -147,21 +147,21 @@ Cura.MachineAction
                     {
                         id: listview
                         model: manager.discoveredDevices
-                        // onModelChanged:
-                        // {
-                        //     var selectedKey = manager.getLastManualEntryKey()
-                        //     // If there is no last manual entry key, then we select the stored key (if any)
-                        //     if (selectedKey == "")
-                        //         selectedKey = manager.getStoredKey()
-                        //     for(var i = 0; i < model.length; i++) {
-                        //         if(model[i].key == selectedKey)
-                        //         {
-                        //             currentIndex = i;
-                        //             return
-                        //         }
-                        //     }
-                        //     currentIndex = -1;
-                        // }
+                        onModelChanged:
+                        {
+                            var selectedKey = manager.getLastManualEntryKey()
+                            // If there is no last manual entry key, then we select the stored key (if any)
+                            if (selectedKey == "")
+                                selectedKey = manager.activeMachineNetworkKey()
+                            for(var i = 0; i < model.length; i++) {
+                                if(model[i].key == selectedKey)
+                                {
+                                    currentIndex = i;
+                                    return
+                                }
+                            }
+                            currentIndex = -1;
+                        }
                         width: parent.width
                         currentIndex: -1
                         onCurrentIndexChanged:

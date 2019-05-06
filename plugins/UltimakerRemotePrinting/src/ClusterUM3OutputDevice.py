@@ -40,7 +40,7 @@ from PyQt5.QtCore import pyqtSlot, QUrl, pyqtSignal, pyqtProperty, QObject
 i18n_catalog = i18nCatalog("cura")
 
 
-class UltimakerLocalOutputDevice(NetworkedPrinterOutputDevice):
+class ClusterUM3OutputDevice(NetworkedPrinterOutputDevice):
     printJobsChanged = pyqtSignal()
     activePrinterChanged = pyqtSignal()
     activeCameraUrlChanged = pyqtSignal()
@@ -66,7 +66,7 @@ class UltimakerLocalOutputDevice(NetworkedPrinterOutputDevice):
         self._received_print_jobs = False # type: bool
 
         if PluginRegistry.getInstance() is not None:
-            plugin_path = PluginRegistry.getInstance().getPluginPath("UltimakerRemotePrinting")
+            plugin_path = PluginRegistry.getInstance().getPluginPath("UM3NetworkPrinting")
             if plugin_path is None:
                 Logger.log("e", "Cloud not find plugin path for plugin UM3NetworkPrnting")
                 raise RuntimeError("Cloud not find plugin path for plugin UM3NetworkPrnting")

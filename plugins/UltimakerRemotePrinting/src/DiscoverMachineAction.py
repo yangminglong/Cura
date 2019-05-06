@@ -115,7 +115,7 @@ class DiscoverUM3Action(MachineAction):
             self._plugin = self._getPlugin()
         return self._plugin.resetLastManualDevice()
 
-    ##  Pass-through. See UltimakerOutputDevicePlugin.
+    ##  Pass-through. See UltimakerOutputDevicePlugin. NOTE: Was formerly called 'getStoredKey'.
     @pyqtSlot(result = str)
     def activeMachineNetworkKey(self) -> str:
         if not self._plugin:
@@ -123,8 +123,8 @@ class DiscoverUM3Action(MachineAction):
         return self._plugin.activeMachineNetworkKey()
     
     ##  Pass-through. See UltimakerOutputDevicePlugin.
-    @pyqtSlot(str, result = bool)
-    def activeMachineHasNetworkKey(self, key: str) -> bool:
+    @pyqtSlot(result = bool)
+    def activeMachineHasNetworkKey(self) -> bool:
         if not self._plugin:
             self._plugin = self._getPlugin()
         return self._plugin.activeMachineHasNetworkKey()
@@ -134,7 +134,7 @@ class DiscoverUM3Action(MachineAction):
     def setGroupName(self, group_name: str) -> None:
         if not self._plugin:
             self._plugin = self._getPlugin()
-        return self._plugin.setGroupName()
+        return self._plugin.setGroupName(group_name)
 
     ##  Pass-through. See UltimakerOutputDevicePlugin.
     @pyqtSlot(str, str)
