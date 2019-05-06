@@ -347,7 +347,7 @@ Cura.MachineAction
     UM.Dialog
     {
         id: manualPrinterDialog
-        property string printerKey
+        property string hostName
         property alias addressText: addressField.text
 
         title: catalog.i18nc("@title:window", "Printer Address")
@@ -360,7 +360,7 @@ Cura.MachineAction
         signal showDialog(string key, string address)
         onShowDialog:
         {
-            printerKey = key;
+            hostName = key;
             addressText = address;
             manualPrinterDialog.show();
             addressField.selectAll();
@@ -406,7 +406,7 @@ Cura.MachineAction
                 text: catalog.i18nc("@action:button", "OK")
                 onClicked:
                 {
-                    manager.setManualDevice(manualPrinterDialog.printerKey, manualPrinterDialog.addressText)
+                    manager.setManualDevice(manualPrinterDialog.hostName, manualPrinterDialog.addressText)
                     manualPrinterDialog.hide()
                 }
                 enabled: manualPrinterDialog.addressText.trim() != ""

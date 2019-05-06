@@ -10,6 +10,10 @@ from typing import Optional, TYPE_CHECKING, Dict
 from UM.i18n import i18nCatalog
 from UM.Logger import Logger
 from zeroconf import Zeroconf, ServiceBrowser, ServiceStateChange, ServiceInfo
+from cura.CuraApplication import CuraApplication
+from PyQt5.QtNetwork import QNetworkRequest, QNetworkAccessManager
+from PyQt5.QtCore import QUrl
+from UM.Version import Version
 
 catalog = i18nCatalog("cura")
 
@@ -17,13 +21,26 @@ class LocalDeviceManager():
 
     def __init__(self, plugin: "UltimakerOutputDevicePlugin"):
         self._plugin = plugin
-        self._discovered_devices = {} # TODO: Typing!
         self._zeroconf_browser = None
         self._zeroconf = None
         self._last_zeroconf_event_time = time.time() #type: float
 
         # Time to wait after a zero-conf service change before allowing a zeroconf reset
         self._zeroconf_change_grace_period = 0.25 #type: float
+
+        # Get list of manual instances from preferences
+        self._preferences = CuraApplication.getInstance().getPreferences()
+        self._preferences.addPreference("um3networkprinting/manual_instances", "")  # A comma-separated list of ip adresses or hostnames
+        self._manual_addresses = self._preferences.getValue("um3networkprinting/manual_instances").split(",")
+
+        self._api_version = "1"
+        self._api_prefix = "/api/v" + self._api_version + "/"
+        self._cluster_api_version = "1"
+        self._cluster_api_prefix = "/cluster-api/v" + self._cluster_api_version + "/"
+        self._network_manager = QNetworkAccessManager()
+        self._network_manager.finished.connect(self._onNetworkRequestFinished)
+        self._min_cluster_version = Version("4.0.0")
+        self._min_cloud_version = Version("5.2.0")
     
     ##  Start searching for local printers (on LAN, with Zeroconf).
     def _startDiscovery(self) -> None:
@@ -95,13 +112,14 @@ class LocalDeviceManager():
             #       b"firmware_version": b"5.2.8.20190320",
             #       b"machine": b"9066.0"
             #   }
+
+            hostname = str(name).split(".")[0]
             if info:
                 device_type = info.properties.get(b"type", None)
                 if device_type:
                     if device_type == b"printer":
                         address = '.'.join(map(lambda n: str(n), info.address))
-                        print("ADDING DEVICE", str(name))
-                        self._plugin.addDevice(str(name), "local", info.properties, address)
+                        self._plugin.addDevice(hostname, "local", info.properties, address)
                     else:
                         Logger.log("w", "The type of the found device is '%s', not 'printer'! Ignoring..." % device_type)
         
@@ -109,3 +127,76 @@ class LocalDeviceManager():
         elif state_change == ServiceStateChange.Removed:
             Logger.log("d", "Zeroconf service removed: %s" % name)
             self._plugin.removeDevice(str(name), "local")
+
+    def checkManuallyAddedDevice(self, address: str):
+        if address not in self._manual_addresses:
+            self._manual_addresses.append(address)
+            self._preferences.setValue("um3networkprinting/manual_instances", ",".join(self._manual_addresses))
+
+        url = QUrl("http://" + address + self._api_prefix + "system")
+        name_request = QNetworkRequest(url)
+        self._network_manager.get(name_request)
+
+    def _onNetworkRequestFinished(self, reply: "QNetworkReply") -> None:
+        reply_url = reply.url().toString()
+        address = reply.url().host()
+        properties = {}  # type: Dict[bytes, bytes]
+
+        if reply.attribute(QNetworkRequest.HttpStatusCodeAttribute) != 200:
+            # Either:
+            #  - Something went wrong with checking the firmware version!
+            #  - Something went wrong with checking the amount of printers the cluster has!
+            #  - Couldn't find printer at the address when trying to add it manually.
+            if address in self._manual_addresses:
+                # TODO: Remove the printer
+                return
+            return
+
+        if "system" in reply_url:
+            try:
+                system_info = json.loads(bytes(reply.readAll()).decode("utf-8"))
+            except:
+                Logger.log("e", "Something went wrong converting the JSON.")
+                return
+
+            properties = {
+                b"name": system_info["name"].encode("utf-8"),
+                b"address": address.encode("utf-8"),
+                b"firmware_version": system_info["firmware"].encode("utf-8"),
+                b"manual": b"true",
+                b"machine": str(system_info['hardware']["typeid"]).encode("utf-8")
+            }
+
+            # Cluster needs an additional request, before it's completed.
+            if Version(system_info["firmware"]) > self._min_cluster_version:
+                properties[b"incomplete"] = b"true"     
+                cluster_url = QUrl("http://" + address + self._cluster_api_prefix + "printers/")
+                cluster_request = QNetworkRequest(cluster_url)
+                self._network_manager.get(cluster_request)
+
+            self._plugin.addDevice(system_info["hostname"], "local", properties, address)
+        
+        # This handles the cluster requests made above...
+        elif "printers" in reply_url:
+            # So we confirmed that the device is in fact a cluster printer, and we should now know how big it is.
+            try:
+                cluster_printers_list = json.loads(bytes(reply.readAll()).decode("utf-8"))
+            except:
+                Logger.log("e", "Something went wrong converting the JSON.")
+                return
+            hostname = cluster_printers_list[0]["unique_name"]
+            discovered_devices = self._plugin.getDiscoveredDevices("local")
+            if hostname in discovered_devices:
+                device = discovered_devices[hostname]
+                properties = device.getProperties().copy()
+                if b"incomplete" in properties:
+                    del properties[b"incomplete"]
+                properties[b"cluster_size"] = str(len(cluster_printers_list)).encode("utf-8")
+
+                # Remove the old version of the device and replace it with the updated one
+                self._plugin.removeDevice(hostname, "local")
+                self._plugin.addDevice(hostname, "local", properties, address)
+
+        if address in self._manual_addresses:
+            # TODO: Remove the printer
+            return

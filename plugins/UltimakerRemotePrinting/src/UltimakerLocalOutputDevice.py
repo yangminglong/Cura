@@ -50,8 +50,8 @@ class UltimakerLocalOutputDevice(NetworkedPrinterOutputDevice):
     # Therefore we create a private signal used to trigger the printersChanged signal.
     _clusterPrintersChanged = pyqtSignal()
 
-    def __init__(self, host_name, address, properties, parent = None) -> None:
-        super().__init__(device_id = host_name, address = address, properties=properties, connection_type = ConnectionType.NetworkConnection, parent = parent)
+    def __init__(self, hostname, address, properties, parent = None) -> None:
+        super().__init__(device_id = hostname, address = address, properties=properties, connection_type = ConnectionType.NetworkConnection, parent = parent)
         
         self._api_prefix = "/cluster-api/v1/"
 
@@ -59,7 +59,7 @@ class UltimakerLocalOutputDevice(NetworkedPrinterOutputDevice):
 
         self._number_of_extruders = 2
 
-        self._host_name = host_name
+        self._hostname = hostname
 
         # self._dummy_lambdas = (
         #     "", {}, io.BytesIO()
@@ -149,7 +149,7 @@ class UltimakerLocalOutputDevice(NetworkedPrinterOutputDevice):
 
     @pyqtProperty(str, constant=True)
     def hostName(self) -> str:
-        return self._host_name
+        return self._hostname
 
 #     ##  Allows the user to choose a printer to print with from the printer
 #     #   selection dialogue.

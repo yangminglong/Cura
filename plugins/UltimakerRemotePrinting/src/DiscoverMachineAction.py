@@ -124,10 +124,10 @@ class DiscoverUM3Action(MachineAction):
     
     ##  Pass-through. See UltimakerOutputDevicePlugin.
     @pyqtSlot(str, result = bool)
-    def activeMachineHasHostName(self, host_name: str) -> bool:
+    def activeMachineHasHostName(self, hostname: str) -> bool:
         if not self._plugin:
             self._plugin = self._getPlugin()
-        return self._plugin.activeMachineHasHostName(host_name)
+        return self._plugin.activeMachineHasHostName(hostname)
     
     ##  Pass-through. See UltimakerOutputDevicePlugin.
     @pyqtSlot(str)
@@ -145,10 +145,10 @@ class DiscoverUM3Action(MachineAction):
 
     ##  Pass-through. See UltimakerOutputDevicePlugin.
     @pyqtSlot(str, str)
-    def setManualDevice(self, key: str, address: str) -> None:
+    def setManualDevice(self, hostname: str, address: str) -> None:
         if not self._plugin:
             self._plugin = self._getPlugin()
-        return self._plugin.setManualDevice(key, address)
+        return self._plugin.setManualDevice(hostname, address)
 
     ##  Pass-through. See UltimakerOutputDevicePlugin.
     @pyqtSlot()

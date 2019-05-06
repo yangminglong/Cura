@@ -52,6 +52,7 @@ class UltimakerOutputDevicePlugin(OutputDevicePlugin):
         self._cloud_device_manager._stopDiscovery()
 
     def addDevice(self, hostname, connection_type, properties, address) -> None:
+        print("ADDING DEVICE", hostname)
         if connection_type is "local":
             device = UltimakerLocalOutputDevice(hostname, address, properties)
         elif connection_type is "cloud":
@@ -64,8 +65,10 @@ class UltimakerOutputDevicePlugin(OutputDevicePlugin):
         self.deviceDiscovered.emit()
 
     def removeDevice(self, hostname, connection_type) -> None:
+        if self._discovered_devices[connection_type][hostname]:
+            del self._discovered_devices[connection_type][hostname]
         self.deviceDiscovered.emit()
-        return None
+        return
 
     def getDiscoveredDevices(self, connection_type: Optional[str]) -> Dict:
         if connection_type and self._discovered_devices[connection_type]:
@@ -78,12 +81,12 @@ class UltimakerOutputDevicePlugin(OutputDevicePlugin):
         global_container_stack = CuraApplication.getInstance().getGlobalContainerStack()
         if global_container_stack:
             meta_data = global_container_stack.getMetaData()
-            if "host_name" in meta_data:
-                return global_container_stack.getMetaDataEntry("host_name")
+            if "hostname" in meta_data:
+                return global_container_stack.getMetaDataEntry("hostname")
         return ""
 
-    def activeMachineHasHostName(self, host_name: str) -> bool:
-        metadata_filter = {"host_name": host_name}
+    def activeMachineHasHostName(self, hostname: str) -> bool:
+        metadata_filter = {"hostname": hostname}
         containers = CuraContainerRegistry.getInstance().findContainerStacks(type="machine", **metadata_filter)
         return bool(containers)
 
@@ -124,17 +127,19 @@ class UltimakerOutputDevicePlugin(OutputDevicePlugin):
         for index in range(len(material_ids)):
             machine_manager.printerOutputDevices[0].materialIdChanged.emit(index, material_ids[index])
 
-    def removeManualDevice(self, key: str, address: str):
+    def addManualDevice(self, address: str):
+        self._local_device_manager.checkManuallyAddedDevice(address)
         return None
 
     def resetLastManualDevice(self):
         self.deviceDiscovered.emit()
         return None
 
-    def setManualDevice(self, key: str, address: str):
-        if key != "":
+    def setManualDevice(self, hostname: str, address: str):
+        if hostname != "":
             # This manual printer replaces a current manual printer
-            self.removeManualDevice(key, address)
+            # TODO: What?
+            self.removeManualDevice(hostname, address)
         if address != "":
             self.addManualDevice(address)
 
@@ -149,14 +154,14 @@ class UltimakerOutputDevicePlugin(OutputDevicePlugin):
 
         meta_data = global_container_stack.getMetaData()
 
-        if "host_name" in meta_data:  # Global stack already had a connection, but it's changed.
-            old_host_name = meta_data["host_name"]
+        if "hostname" in meta_data:  # Global stack already had a connection, but it's changed.
+            old_hostname = meta_data["hostname"]
             # Since we might have a bunch of hidden stacks, we also need to change it there.
-            metadata_filter = {"host_name": old_host_name}
+            metadata_filter = {"hostname": old_hostname}
             containers = CuraApplication.getInstance().getContainerRegistry().findContainerStacks(type = "machine", **metadata_filter)
 
             for container in containers:
-                container.setMetaDataEntry("host_name", output_device.hostName)
+                container.setMetaDataEntry("hostname", output_device.hostName)
 
                 # Delete old authentication data.
                 Logger.log("d", "Removing old authentication id %s for device %s",
@@ -169,11 +174,10 @@ class UltimakerOutputDevicePlugin(OutputDevicePlugin):
                 container.addConfiguredConnectionType(output_device.connectionType.value)
 
         else:  # Global stack didn't have a connection yet, configure it.
-            global_container_stack.setMetaDataEntry("host_name", output_device.hostName)
+            global_container_stack.setMetaDataEntry("hostname", output_device.hostName)
             global_container_stack.addConfiguredConnectionType(output_device.connectionType.value)
 
         self.refreshConnections()
 
     def getLastManualEntryKey(self):
         return None
-        
