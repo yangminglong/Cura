@@ -49,7 +49,7 @@ i18n_catalog = i18nCatalog("cura")
 #                   progress. It is kept here so we can cancel a request when needed.
 #
 class ManualPrinterRequest:
-    def __init__(self, address: str, callback: Optional[Callable[[bool, str], None]] = None) -> None:
+    def __init__(self, address: str, callback: Optional[Callable[[bool], None]] = None) -> None:
         self.address = address
         self.callback = callback
         self.network_reply = None  # type: Optional["QNetworkReply"]
@@ -86,6 +86,7 @@ class UM3OutputDevicePlugin(OutputDevicePlugin):
         
         self._network_manager = QNetworkAccessManager()
         self._network_manager.finished.connect(self._onNetworkRequestFinished)
+        self._network_manager.sslErrors.connect(self._onSslErrors)
 
         self._min_cluster_version = Version("4.0.0")
         self._min_cloud_version = Version("5.2.0")
@@ -135,6 +136,10 @@ class UM3OutputDevicePlugin(OutputDevicePlugin):
 
         self._start_cloud_flow_message = None # type: Optional[Message]
         self._cloud_flow_complete_message = None # type: Optional[Message]
+
+    def _onSslErrors(self, reply: QNetworkReply, sslErrors) -> None:
+        Logger.log("w", "Request to {url} has SSL errors".format(url = reply.url().toString()))
+        reply.ignoreSslErrors()
 
     def getDiscoveredDevices(self):
         return self._discovered_devices
@@ -232,9 +237,18 @@ class UM3OutputDevicePlugin(OutputDevicePlugin):
                 manual_printer_request.network_reply.abort()
 
             if manual_printer_request.callback is not None:
-                self._application.callLater(manual_printer_request.callback, False, address)
+                self._application.callLater(manual_printer_request.callback, False)
 
-    def addManualDevice(self, address: str, callback: Optional[Callable[[bool, str], None]] = None) -> None:
+    def addManualDevice(self, address_or_url: str, callback: Optional[Callable[[bool], None]] = None) -> None:
+        if address_or_url.startswith("https://"):
+            network_protocol = "https"
+            address = address_or_url[len("https://"):]
+            if address[-1:] == "/":
+                address = address_or_url[:-1]
+        else:
+            address = address_or_url
+            network_protocol = "http"
+
         if address in self._manual_instances:
             Logger.log("i", "Manual printer with address [%s] has already been added, do nothing", address)
             return
@@ -246,6 +260,7 @@ class UM3OutputDevicePlugin(OutputDevicePlugin):
         properties = {
             b"name": address.encode("utf-8"),
             b"address": address.encode("utf-8"),
+            b"network_protocol": network_protocol.encode("utf-8"),
             b"manual": b"true",
             b"incomplete": b"true",
             b"temporary": b"true"   # Still a temporary device until all the info is retrieved in _onNetworkRequestFinished
@@ -256,7 +271,7 @@ class UM3OutputDevicePlugin(OutputDevicePlugin):
             self._onAddDevice(instance_name, address, properties)
         self._last_manual_entry_key = instance_name
 
-        reply = self._checkManualDevice(address)
+        reply = self._checkManualDevice(network_protocol, address)
         self._manual_instances[address].network_reply = reply
 
     def _createMachineFromDiscoveredPrinter(self, key: str) -> None:
@@ -304,11 +319,12 @@ class UM3OutputDevicePlugin(OutputDevicePlugin):
 
         self.refreshConnections()
 
-    def _checkManualDevice(self, address: str) -> "QNetworkReply":
+    def _checkManualDevice(self, network_protocol: str, address: str) -> "QNetworkReply":
         # Check if a UM3 family device exists at this address.
         # If a printer responds, it will replace the preliminary printer created above
         # origin=manual is for tracking back the origin of the call
-        url = QUrl("http://" + address + self._api_prefix + "system")
+        url_str = network_protocol + "://" + address + self._api_prefix + "system"
+        url = QUrl(url_str)
         name_request = QNetworkRequest(url)
         return self._network_manager.get(name_request)
 
@@ -316,6 +332,7 @@ class UM3OutputDevicePlugin(OutputDevicePlugin):
         reply_url = reply.url().toString()
 
         address = reply.url().host()
+        network_protocol = reply.url().scheme()
         device = None
         properties = {}  # type: Dict[bytes, bytes]
 
@@ -347,6 +364,7 @@ class UM3OutputDevicePlugin(OutputDevicePlugin):
             properties = {
                 b"name": (system_info["name"] + " (manual)").encode("utf-8"),
                 b"address": address.encode("utf-8"),
+                b"network_protocol": network_protocol.encode("utf-8"),
                 b"firmware_version": system_info["firmware"].encode("utf-8"),
                 b"manual": b"true",
                 b"machine": str(system_info['hardware']["typeid"]).encode("utf-8")
@@ -398,7 +416,7 @@ class UM3OutputDevicePlugin(OutputDevicePlugin):
             self._application.getDiscoveredPrintersModel().removeDiscoveredPrinter(device.address)
             self.discoveredDevicesChanged.emit()
 
-    def _onAddDevice(self, name, address, properties):
+    def _onAddDevice(self, name: str, address: str, properties: Dict[bytes, bytes]) -> None:
         # Check what kind of device we need to add; Depending on the firmware we either add a "Connect"/"Cluster"
         # or "Legacy" UM3 device.
         cluster_size = int(properties.get(b"cluster_size", -1))
@@ -417,7 +435,10 @@ class UM3OutputDevicePlugin(OutputDevicePlugin):
         else:
             properties[b"printer_type"] = b"Unknown"
         if cluster_size >= 0:
-            device = ClusterUM3OutputDevice.ClusterUM3OutputDevice(name, address, properties)
+            network_protocol = "http"
+            if b"network_protocol" in properties:
+                network_protocol = properties.get(b"network_protocol").decode("utf-8")
+            device = ClusterUM3OutputDevice.ClusterUM3OutputDevice(name, network_protocol, address, properties)
         else:
             device = LegacyUM3OutputDevice.LegacyUM3OutputDevice(name, address, properties)
         self._application.getDiscoveredPrintersModel().addDiscoveredPrinter(

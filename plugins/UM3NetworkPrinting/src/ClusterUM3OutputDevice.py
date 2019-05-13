@@ -50,7 +50,10 @@ class ClusterUM3OutputDevice(NetworkedPrinterOutputDevice):
     # Therefore we create a private signal used to trigger the printersChanged signal.
     _clusterPrintersChanged = pyqtSignal()
 
-    def __init__(self, device_id, address, properties, parent = None) -> None:
+    def __init__(self, device_id, network_protocol: str, address: str, properties, parent = None) -> None:
+        Logger.log("i", "ClusterUM3OutputDevice network_protocol=" + str(network_protocol) + ", address=" + str(address))
+        self._network_protocol = network_protocol
+
         super().__init__(device_id = device_id, address = address, properties=properties, connection_type = ConnectionType.NetworkConnection, parent = parent)
         self._api_prefix = "/cluster-api/v1/"
 
@@ -105,6 +108,14 @@ class ClusterUM3OutputDevice(NetworkedPrinterOutputDevice):
         self._sending_job = None
 
         self._active_camera_url = QUrl()  # type: QUrl
+
+    def _createEmptyRequest(self, target: str, content_type: Optional[str] = "application/json") -> QNetworkRequest:
+        url = QUrl(self._network_protocol + "://" + self._address + self._api_prefix + target)
+        request = QNetworkRequest(url)
+        if content_type is not None:
+            request.setHeader(QNetworkRequest.ContentTypeHeader, content_type)
+        request.setHeader(QNetworkRequest.UserAgentHeader, self._user_agent)
+        return request
 
     def requestWrite(self, nodes: List[SceneNode], file_name: Optional[str] = None, limit_mimetypes: bool = False,
                      file_handler: Optional[FileHandler] = None, **kwargs: str) -> None:
@@ -315,12 +326,12 @@ class ClusterUM3OutputDevice(NetworkedPrinterOutputDevice):
     @pyqtSlot()
     def openPrintJobControlPanel(self) -> None:
         Logger.log("d", "Opening print job control panel...")
-        QDesktopServices.openUrl(QUrl("http://" + self._address + "/print_jobs"))
+        QDesktopServices.openUrl(QUrl(self._network_protocol + "://" + self._address + "/print_jobs"))
 
     @pyqtSlot()
     def openPrinterControlPanel(self) -> None:
         Logger.log("d", "Opening printer control panel...")
-        QDesktopServices.openUrl(QUrl("http://" + self._address + "/printers"))
+        QDesktopServices.openUrl(QUrl(self._network_protocol + "://" + self._address + "/printers"))
 
     @pyqtProperty("QVariantList", notify = printJobsChanged)
     def printJobs(self)-> List[UM3PrintJobOutputModel]:
@@ -515,7 +526,7 @@ class ClusterUM3OutputDevice(NetworkedPrinterOutputDevice):
     def _createPrinterModel(self, data: Dict[str, Any]) -> PrinterOutputModel:
         printer = PrinterOutputModel(output_controller = ClusterUM3PrinterOutputController(self),
                                      number_of_extruders = self._number_of_extruders)
-        printer.setCameraUrl(QUrl("http://" + data["ip_address"] + ":8080/?action=stream"))
+        printer.setCameraUrl(QUrl(self._network_protocol + "://" + data["ip_address"] + ":8080/?action=stream"))
         self._printers.append(printer)
         return printer
 

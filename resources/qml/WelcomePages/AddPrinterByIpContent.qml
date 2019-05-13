@@ -99,7 +99,7 @@ Item
                 font: UM.Theme.getFont("default")
                 color: UM.Theme.getColor("text")
                 renderType: Text.NativeRendering
-                text: catalog.i18nc("@label", "Enter the IP address or hostname of your printer on the network.")
+                text: catalog.i18nc("@label", "Enter the IP address, hostname, or URL of your printer on the network.")
             }
 
             Item
@@ -121,14 +121,14 @@ Item
 
                     signal invalidInputDetected()
 
-                    onInvalidInputDetected: invalidInputLabel.visible = true
+                    // onInvalidInputDetected: invalidInputLabel.visible = true
 
-                    validator: RegExpValidator
-                    {
-                        regExp: /([a-fA-F0-9.:]+)?/
-                    }
+                    // validator: RegExpValidator
+                    // {
+                    //     regExp: /([a-fA-F0-9.:]+)?/
+                    // }
 
-                    onTextEdited: invalidInputLabel.visible = false
+                    // onTextEdited: invalidInputLabel.visible = false
 
                     placeholderText: catalog.i18nc("@text", "Place enter your printer's IP address.")
 
@@ -160,11 +160,11 @@ Item
                     onClicked:
                     {
                         const address = hostnameField.text
-                        if (!networkingUtil.isValidIP(address))
-                        {
-                            hostnameField.invalidInputDetected()
-                            return
-                        }
+                        // if (!networkingUtil.isValidIP(address))
+                        // {
+                        //     hostnameField.invalidInputDetected()
+                        //     return
+                        // }
 
                         // This address is already in the discovered printer model, no need to add a manual discovery.
                         if (CuraApplication.getDiscoveredPrintersModel().discoveredPrintersByAddress[address])
@@ -174,7 +174,15 @@ Item
                             return
                         }
 
-                        addPrinterByIpScreen.currentRequestAddress = address
+                        var ip_address = address;
+                        if (address.slice(0, 8) == "https://") {
+                            ip_address = address.slice(8);
+                            if (ip_address[ip_address.length-1] == "/") {
+                                ip_address = ip_address.slice(0, -1);
+                            }
+                        }
+
+                        addPrinterByIpScreen.currentRequestAddress = ip_address
                         CuraApplication.getDiscoveredPrintersModel().checkManualDevice(address)
                     }
                     busy: addPrinterByIpScreen.hasRequestInProgress

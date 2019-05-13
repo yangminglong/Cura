@@ -309,6 +309,10 @@ class NetworkedPrinterOutputDevice(PrinterOutputDevice):
     def _onAuthenticationRequired(self, reply: QNetworkReply, authenticator: QAuthenticator) -> None:
         Logger.log("w", "Request to {url} required authentication, which was not implemented".format(url = reply.url().toString()))
 
+    def _onSslErrors(self, reply: QNetworkReply, sslErrors) -> None:
+        Logger.log("w", "Request to {url} has SSL errors".format(url = reply.url().toString()))
+        reply.ignoreSslErrors()     # FIXME this is only for testing purposes
+
     def _createNetworkManager(self) -> None:
         Logger.log("d", "Creating network manager")
         if self._manager:
@@ -319,7 +323,7 @@ class NetworkedPrinterOutputDevice(PrinterOutputDevice):
         self._manager.finished.connect(self._handleOnFinished)
         self._last_manager_create_time = time()
         self._manager.authenticationRequired.connect(self._onAuthenticationRequired)
-
+        self._manager.sslErrors.connect(self._onSslErrors)
         if self._properties.get(b"temporary", b"false") != b"true":
             self._checkCorrectGroupName(self.getId(), self.name)
 

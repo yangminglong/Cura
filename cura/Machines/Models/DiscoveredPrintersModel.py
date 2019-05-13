@@ -152,7 +152,11 @@ class DiscoveredPrintersModel(QObject):
 
         plugin = max(can_add_manual_plugins, key = lambda p: priority_order.index(p.canAddManualDevice(address)))
         self._plugin_for_manual_device = plugin
-        self._plugin_for_manual_device.addManualDevice(address, callback = self._onManualDeviceRequestFinished)
+
+        def callback(success: bool):
+            self._onManualDeviceRequestFinished(success, address)
+
+        self._plugin_for_manual_device.addManualDevice(address, callback = callback)
         self._manual_device_address = address
         self._manual_device_request_timer.start()
         self.hasManualDeviceRequestInProgressChanged.emit()
