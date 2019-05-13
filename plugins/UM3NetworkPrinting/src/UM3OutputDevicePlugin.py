@@ -357,7 +357,7 @@ class UM3OutputDevicePlugin(OutputDevicePlugin):
                 manual_printer_request = self._manual_instances[address]
                 manual_printer_request.network_reply = None
                 if manual_printer_request.callback is not None:
-                    self._application.callLater(manual_printer_request.callback, True, address)
+                    self._application.callLater(manual_printer_request.callback, True)
 
             has_cluster_capable_firmware = Version(system_info["firmware"]) > self._min_cluster_version
             instance_name = "manual:%s" % address
