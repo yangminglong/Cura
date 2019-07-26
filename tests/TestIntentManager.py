@@ -4,10 +4,36 @@ import pytest
 from typing import Any, Dict, List
 
 from cura.Settings.IntentManager import IntentManager
+from cura.Settings.MachineManager import MachineManager
 from cura.Machines.QualityGroup import QualityGroup
 from cura.Machines.QualityManager import QualityManager
+from UM.Settings.ContainerRegistry import ContainerRegistry
 
 from tests.Settings.MockContainer import MockContainer
+
+
+@pytest.fixture()
+def global_stack():
+    return MagicMock(name="Global Stack")
+
+
+@pytest.fixture()
+def container_registry(application, global_stack) -> ContainerRegistry:
+    result = MagicMock(name = "ContainerRegistry")
+    result.findContainerStacks = MagicMock(return_value = [global_stack])
+    application.getContainerRegistry = MagicMock(return_value = result)
+    return result
+
+
+@pytest.fixture()
+def machine_manager(application, extruder_manager, container_registry, global_stack) -> MachineManager:
+    application.getExtruderManager = MagicMock(return_value = extruder_manager)
+    application.getGlobalContainerStack = MagicMock(return_value = global_stack)
+    with patch("UM.Settings.ContainerRegistry.ContainerRegistry.getInstance", MagicMock(return_value=container_registry)):
+        manager = MachineManager(application)
+
+    return manager
+
 
 @pytest.fixture()
 def quality_manager(application, container_registry, global_stack) -> QualityManager:
@@ -105,11 +131,9 @@ def test_getCurrentAvailableIntents(application, extruder_manager, quality_manag
     with patch("cura.CuraApplication.CuraApplication.getInstance", MagicMock(return_value = application)):
         with patch("UM.Settings.ContainerRegistry.ContainerRegistry.getInstance", MagicMock(return_value = container_registry)):
             intents = intent_manager.getCurrentAvailableIntents()
-            assert ("smooth", "normal") in intents
-            assert ("strong", "abnorm") in intents
-            #assert ("default", "normal") in intents  # Pending to-do in 'IntentManager'.
-            #assert ("default", "abnorm") in intents  # Pending to-do in 'IntentManager'.
-            assert len(intents) == 2  # Or 4? pending to-do in 'IntentManager'.
+            assert ("default", "normal") in intents
+            assert ("default", "abnorm") in intents
+            assert len(intents) == 2  # Or 4? pending to-do in 'IntentManager'? TODO?
 
 
 def test_currentAvailableIntentCategories(application, extruder_manager, quality_manager, intent_manager, container_registry, global_stack):

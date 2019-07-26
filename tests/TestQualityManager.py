@@ -40,14 +40,14 @@ def quality_mocked_application(material_manager, container_registry):
     return result
 
 
-def test_getQualityGroups(quality_mocked_application):
+def test_getDefaultIntentQualityGroups(quality_mocked_application):
     manager = QualityManager(quality_mocked_application)
     manager.initialize()
 
     assert "normal" in manager.getDefaultIntentQualityGroups(mocked_stack)
 
 
-def test_getQualityGroupsForMachineDefinition(quality_mocked_application):
+def test_getDefaultIntentQualityGroupsForMachineDefinition(quality_mocked_application):
     manager = QualityManager(quality_mocked_application)
     manager.initialize()
 
@@ -60,13 +60,13 @@ def test_getQualityChangesGroup(quality_mocked_application):
 
     assert "herp" in manager.getQualityChangesGroups(mocked_stack)
 
-
+## TODO/FIXME: Has become undeterministic somehow! :'-(
 def test_getDefaultQualityType(quality_mocked_application):
     manager = QualityManager(quality_mocked_application)
     manager.initialize()
     mocked_stack = MagicMock()
     mocked_stack.definition.getMetaDataEntry = MagicMock(return_value = "normal")
-    assert manager.getDefaultQualityType(mocked_stack).quality_type == "normal"
+    assert manager.getDefaultQualityType(mocked_stack).getQualityType() == "normal"
 
 @pytest.mark.skip  ## TODO: Should be moved to TestIntentManager!
 def test_createQualityChanges(quality_mocked_application):

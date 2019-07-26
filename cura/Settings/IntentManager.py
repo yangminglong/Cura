@@ -16,6 +16,7 @@ from UM.Settings.InstanceContainer import InstanceContainer
 
 if TYPE_CHECKING:
     from cura.Machines.QualityChangesGroup import QualityChangesGroup
+    from cura.Settings.GlobalStack import GlobalStack
     from UM.Settings.InstanceContainer import InstanceContainer
 
 ##  Front-end for querying which intents are available for a certain
@@ -42,7 +43,7 @@ class IntentManager(QObject):
         # NOTE: In its initialization, QualityManager seems to account for buildplate variants. We don't do that here! (FIXME?)
         quality_dict = application.getQualityManager()._machine_nozzle_buildplate_material_quality_type_to_quality_dict
 
-        nodes_to_check = Queue()
+        nodes_to_check = Queue()  # type: Queue[QualityNode]
         for node in quality_dict.values():
             nodes_to_check.put(node)
 
@@ -142,7 +143,7 @@ class IntentManager(QObject):
             # TODO: We now do this (return a default) if the global stack is missing, but not in the code below,
             #       even though there should always be defaults. The problem then is what to do with the quality_types.
             #       Currently _also_ inconsistent with 'currentAvailableIntentCategories', which _does_ return default.
-        return self.getQualityGroups(global_stack).keys()
+        return list(self.getQualityGroups(global_stack).keys())
 
     ##  List of intent categories available in either of the extruders.
     #
@@ -236,11 +237,11 @@ class IntentManager(QObject):
         # TODO: Change this method to be more aware of the new QualityNode-structure!
         return quality_changes_group_dict
 
-    def getQualityGroups(self, machine: "GlobalStack") -> dict:
+    def getQualityGroups(self, machine: "GlobalStack") -> Dict[Tuple[str, str], QualityGroup]:
         application = cura.CuraApplication.CuraApplication.getInstance()
         quality_groups = application.getQualityManager().getDefaultIntentQualityGroups(machine)
 
-        quality_group_dict = dict()  # type: Set[Tuple[str, str], QualityGroup]
+        quality_group_dict = dict()  # type: Dict[Tuple[str, str], QualityGroup]
         for quality_type, quality_group in quality_groups.items():
             quality_group_dict[(DEFAULT_INTENT_CATEGORY, quality_type)] = quality_group
 
@@ -260,7 +261,7 @@ class IntentManager(QObject):
                 for intent_category, intent_node in extruder_intent_map.quality_type_map.items():
                     quality_tuple = (intent_category, quality_type)
                     if quality_tuple not in quality_tuple_to_intent_nodes_per_extruder:
-                        quality_tuple_to_intent_nodes_per_extruder[quality_tuple] = {}  # type: Dict[int, QualityNode]
+                        quality_tuple_to_intent_nodes_per_extruder[quality_tuple] = {}
 
                     quality_tuple_to_intent_nodes_per_extruder[quality_tuple][extruder_id] = intent_node
 
