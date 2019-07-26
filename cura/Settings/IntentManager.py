@@ -29,7 +29,7 @@ class IntentManager(QObject):
         super().__init__()
 
         # For quality_changes lookup
-        self._machine_quality_type_to_quality_changes_dict = {}  # type: Dict[str, QualityNode]  # TODO: change to intent (or add it), populate
+        self._machine_quality_type_to_quality_changes_dict = {}  # type: Dict[str, QualityNode]  # TODO: change name
 
     def initialize(self) -> None:
         application = cura.CuraApplication.CuraApplication.getInstance()
@@ -70,10 +70,10 @@ class IntentManager(QObject):
 
                 intent_category = intent_metadata["intent_category"]
                 node.addIntentMetadata(quality_type, intent_category, intent_metadata)
-                # TODO: Check how to wrangle this w.r.t. the implicit 'default' intent-category
 
         # Initialize the lookup tree for quality_changes profiles with following structure:
         # <machine> -> <quality_type> -> <name>
+        # TODO:  vvv  does this need to change?  vvv
         quality_changes_metadata_list = registry.findContainersMetadata(type = "quality_changes")
         for metadata in quality_changes_metadata_list:
             if metadata["id"] == "empty_quality_changes":
@@ -265,7 +265,7 @@ class IntentManager(QObject):
                     quality_tuple_to_intent_nodes_per_extruder[quality_tuple][extruder_id] = intent_node
 
             for quality_tuple, intent_nodes_per_extruder in quality_tuple_to_intent_nodes_per_extruder.items():
-                quality_intent_group = QualityGroup("{0}_{1}".format(quality_group.name, intent_category), quality_tuple)
+                quality_intent_group = QualityGroup("{0}_{1}".format(quality_group.name, intent_category), quality_tuple)  ## TODO: name is probably not correct!
                 quality_intent_group.node_for_global = quality_group.node_for_global
 
                 for extruder_id, original_extruder_node in quality_group.nodes_for_extruders.items():
