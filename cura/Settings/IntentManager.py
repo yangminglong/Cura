@@ -244,21 +244,43 @@ class IntentManager(QObject):
         for quality_type, quality_group in quality_groups.items():
             quality_group_dict[(DEFAULT_INTENT_CATEGORY, quality_type)] = quality_group
 
-            intent_map = cast(QualityNode, quality_group.node_for_global).quality_type_map
-            for key in intent_map.keys():
-                pass  ## TODO print("GLOBAL: {0}".format(key))
+            #intent_map = cast(QualityNode, quality_group.node_for_global).quality_type_map
+            #for key in intent_map.keys():
+            #    pass
+            # TODO: Do we ever have a truly 'global' intent? If so, this will be more complicated.
+
+            quality_tuple_to_intent_nodes_per_extruder = {}  # type: Dict[Tuple[str, str], Dict[int, QualityNode]]
 
             for extruder_id, extruder_node in quality_group.nodes_for_extruders.items():
-                ext_intent_map = cast(QualityNode, extruder_node).quality_type_map
-                for key in ext_intent_map.keys():
-                    pass  ## TODO print("EXTRUDER: {0} {1}".format(extruder_id, key))
+                extruder_quality_map = cast(QualityNode, extruder_node).quality_type_map
+                if quality_type not in extruder_quality_map:
+                    continue
+
+                extruder_intent_map = extruder_quality_map[quality_type]
+                for intent_category, intent_node in extruder_intent_map.quality_type_map.items():
+                    quality_tuple = (intent_category, quality_type)
+                    if quality_tuple not in quality_tuple_to_intent_nodes_per_extruder:
+                        quality_tuple_to_intent_nodes_per_extruder[quality_tuple] = {}  # type: Dict[int, QualityNode]
+
+                    quality_tuple_to_intent_nodes_per_extruder[quality_tuple][extruder_id] = intent_node
+
+            for quality_tuple, intent_nodes_per_extruder in quality_tuple_to_intent_nodes_per_extruder.items():
+                quality_intent_group = QualityGroup("{0}_{1}".format(quality_group.name, intent_category), quality_tuple)
+                quality_intent_group.node_for_global = quality_group.node_for_global
+
+                for extruder_id, original_extruder_node in quality_group.nodes_for_extruders.items():
+                    if extruder_id in intent_nodes_per_extruder:
+                        quality_intent_group.nodes_for_extruders[extruder_id] = intent_nodes_per_extruder[extruder_id]
+                        # TODO: Do we need to merge the intent metadata with the quality metadata?
+                    else:
+                        quality_intent_group.nodes_for_extruders[extruder_id] = original_extruder_node
+
+                quality_group_dict[quality_tuple] = quality_intent_group
 
         # Update availabilities for each quality group  ## TODO: See if something like the below is nescesary.
         # self._updateQualityGroupsAvailability(machine, quality_group_dict.values())
 
         return quality_group_dict
-
-    # TODO: Some (all)? of  these where labeled 'Methods for GUI' in QualityManager where they where copied from, probably should move [most|all] of them.
 
     #
     # Remove the given quality changes group.
