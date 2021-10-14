@@ -8,12 +8,15 @@ from UM.Job import Job
 from UM.Application import Application
 from UM.Mesh.MeshData import MeshData
 from UM.View.GL.OpenGLContext import OpenGLContext
+from UM.Scene.SceneNode import SceneNode
 
 from UM.Message import Message
 from UM.i18n import i18nCatalog
 from UM.Logger import Logger
+from UM.Math.Quaternion import Quaternion
 
 from UM.Math.Vector import Vector
+from UM.Math.AxisAlignedBox import AxisAlignedBox
 
 from cura.Scene.BuildPlateDecorator import BuildPlateDecorator
 from cura.Scene.CuraSceneNode import CuraSceneNode
@@ -21,6 +24,8 @@ from cura.Settings.ExtruderManager import ExtruderManager
 from cura import LayerDataBuilder
 from cura import LayerDataDecorator
 from cura import LayerPolygon
+
+import math
 
 import numpy
 from time import time
@@ -115,6 +120,9 @@ class ProcessSlicedLayersJob(Job):
                 if layer.id < 0:
                     negative_layers += 1
 
+        minimum = Vector(32767, 32767, 32767)
+        maximum = Vector(-32767, -32767, -32767)
+
         current_layer = 0
 
         for layer in self._layers:
@@ -163,6 +171,7 @@ class ProcessSlicedLayersJob(Job):
                 # This uses manual array creation + copy rather than numpy.insert since this is
                 # faster.
                 new_points = numpy.empty((len(points), 3), numpy.float32)
+
                 if polygon.point_type == 0:  # Point2D
                     new_points[:, 0] = points[:, 0]
                     new_points[:, 1] = layer.height / 1000  # layer height value is in backend representation
@@ -171,6 +180,10 @@ class ProcessSlicedLayersJob(Job):
                     new_points[:, 0] = points[:, 0]
                     new_points[:, 1] = points[:, 2]
                     new_points[:, 2] = -points[:, 1]
+
+                #  ANYCUBIC : HANSON : START
+                new_points[:, 2] = new_points[:, 2] + layer.height / 1000
+                #  ANYCUBIC : HANSON : END
 
                 this_poly = LayerPolygon.LayerPolygon(extruder, line_types, new_points, line_widths, line_thicknesses, line_feedrates)
                 this_poly.buildCache()
@@ -241,6 +254,11 @@ class ProcessSlicedLayersJob(Job):
         settings = Application.getInstance().getGlobalContainerStack()
         if not settings.getProperty("machine_center_is_zero", "value"):
             new_node.setPosition(Vector(-settings.getProperty("machine_width", "value") / 2, 0.0, settings.getProperty("machine_depth", "value") / 2))
+
+        #  ANYCUBIC : HANSON : START
+        # new_node.setPosition(new_node.getPosition() + Vector(0, 0, - settings.getProperty("machine_depth", "value") / 2))
+        new_node.setOrientation(Quaternion.fromAngleAxis(math.pi / 4, Vector(1, 0, 0)))
+        #  ANYCUBIC : HANSON : END
 
         if self._progress_message:
             self._progress_message.setProgress(100)

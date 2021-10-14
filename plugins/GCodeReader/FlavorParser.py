@@ -45,7 +45,8 @@ class FlavorParser:
         self._position = Position
         self._is_layers_in_file = False  # Does the Gcode have the layers comment?
         self._extruder_offsets = {}  # type: Dict[int, List[float]] # Offsets for multi extruders. key is index, value is [x-offset, y-offset]
-        self._current_layer_thickness = 0.2  # default
+        self._current_layer_height = 0  # default
+        self._base_layer_height = 0  # default
         self._filament_diameter = 2.85       # default
         self._previous_extrusion_value = 0.0  # keep track of the filament retractions
 
@@ -97,6 +98,10 @@ class FlavorParser:
 
     def _createPolygon(self, layer_thickness: float, path: List[List[Union[float, int]]], extruder_offsets: List[float]) -> bool:
         countvalid = 0
+        tanV = 0
+        sinV = 0
+        curHeight = 0
+        new_layer_thickness = 0
         for point in path:
             if point[5] > 0:
                 countvalid += 1
@@ -106,14 +111,28 @@ class FlavorParser:
         if countvalid < 2:
             return False
         try:
+            """ ANYCUBIC : HANSON : START """
+            curHeight = path[0][2]
+            tanV = math.tan(45 * float(math.pi / 180))
+            sinV = math.sin(45 * float(math.pi / 180))
+            new_Height = curHeight * sinV
+            """ ANYCUBIC : HANSON : END """
+
             self._layer_data_builder.addLayer(self._layer_number)
-            self._layer_data_builder.setLayerHeight(self._layer_number, path[0][2])
+            self._layer_data_builder.setLayerHeight(self._layer_number, new_Height)
             self._layer_data_builder.setLayerThickness(self._layer_number, layer_thickness)
             this_layer = self._layer_data_builder.getLayer(self._layer_number)
+
             if not this_layer:
                 return False
         except ValueError:
             return False
+
+        """ ANYCUBIC : HANSON : START """
+        if self._base_layer_height == 0:
+            self._base_layer_height = new_Height
+        """ ANYCUBIC : HANSON : END """
+
         count = len(path)
         line_types = numpy.empty((count - 1, 1), numpy.int32)
         line_widths = numpy.empty((count - 1, 1), numpy.float32)
@@ -125,7 +144,7 @@ class FlavorParser:
         extrusion_values = numpy.empty((count, 1), numpy.float32)
         i = 0
         for point in path:
-            points[i, :] = [point[0] + extruder_offsets[0], point[2], -point[1] - extruder_offsets[1]]
+            points[i, :] = [point[0] + extruder_offsets[0], point[2], -point[1] - extruder_offsets[1] + new_Height ]
             extrusion_values[i] = point[4]
             if i > 0:
                 line_feedrates[i - 1] = point[3]
